@@ -28,22 +28,26 @@ type Connection interface {
 type TestConnection struct {
 }
 
-func request(env *Env) *http.Request {
+func request(env *Env) (*http.Request, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
 	}
-	return &http.Request{Header: header}
+	u, err := url.Parse(env.Url)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Request{Header: header, URL: u}, nil
 }
 
 func (c *TestConnection) HandleOpen(env *Env) error {
-	testCases := map[string]func(env *Env) bool{
-		"request_url": func(env *Env) bool {
-			ok, err := regexp.MatchString("test=request_url", env.Url)
+	testCases := map[string]func(req *http.Request) bool{
+		"request_url": func(req *http.Request) bool {
+			ok, err := regexp.MatchString("test=request_url", req.URL.String())
 			return ok && err == nil
 		},
-		"cookies": func(env *Env) bool {
-			username, err := request(env).Cookie("username")
+		"cookies": func(req *http.Request) bool {
+			username, err := req.Cookie("username")
 			if err != nil {
 				log.Printf("Error reading username from cookies: %v", err)
 				return false
@@ -51,16 +55,19 @@ func (c *TestConnection) HandleOpen(env *Env) error {
 			return username.Value == "john green"
 
 		},
-		"headers": func(env *Env) bool {
-			return request(env).Header.Get("X-Api-Token") == "abc"
+		"headers": func(req *http.Request) bool {
+			return req.Header.Get("X-Api-Token") == "abc"
+		},
+		"reasons": func(req *http.Request) bool {
+			return req.URL.Query().Get("reason") != "unauthorized"
 		},
 	}
-	u, err := url.Parse(env.Url)
+
+	req, err := request(env)
 	if err != nil {
-		log.Printf("Failed parsing URL")
 		return err
 	}
-	testName := u.Query().Get("test")
+	testName := req.URL.Query().Get("test")
 	if testName == "" {
 		return nil
 	}
@@ -69,7 +76,7 @@ func (c *TestConnection) HandleOpen(env *Env) error {
 		log.Printf("No such test: %q", testName)
 		return fmt.Errorf("no such test: %q", testName)
 	}
-	if success := test(env); !success {
+	if success := test(req); !success {
 		log.Printf("Test %q failed", testName)
 		return fmt.Errorf("test %q failed", testName)
 	}
@@ -99,14 +106,16 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	err := s.Connection.HandleOpen(r.Env)
 	if err != nil {
 		return &ConnectionResponse{
-			Status:   Status_ERROR,
-			ErrorMsg: err.Error(),
+			Status:        Status_FAILURE,
+			Transmissions: []string{`{"type":"disconnect","reason":"unauthorized","reconnect":false}`}, // TDO
 		}, nil
 	}
 
 	return &ConnectionResponse{
-		Status:        Status_SUCCESS,
+		Status: Status_SUCCESS,
+		// TODO: Identifiers
 		Transmissions: []string{`{"type":"welcome"}`},
+		// TODO: EnvResponse
 	}, nil
 }
 
