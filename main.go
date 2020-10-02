@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"stimulus/actions"
+	"stimulus/anycable"
 )
 
 // main is the starting point for your Buffalo application.
@@ -13,6 +14,9 @@ import (
 // call `app.Serve()`, unless you don't want to start your
 // application that is. :)
 func main() {
+	if err := anycable.NewServer().Serve(50051); err != nil {
+		log.Fatal(err)
+	}
 	app := actions.App()
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
