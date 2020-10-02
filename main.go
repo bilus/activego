@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"sync"
 
 	"stimulus/actions"
 	"stimulus/anycable"
@@ -14,13 +15,25 @@ import (
 // call `app.Serve()`, unless you don't want to start your
 // application that is. :)
 func main() {
-	if err := anycable.NewServer().Serve(50051); err != nil {
-		log.Fatal(err)
-	}
-	app := actions.App()
-	if err := app.Serve(); err != nil {
-		log.Fatal(err)
-	}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		log.Println("Starting AnyCable backend listening on 50051")
+		if err := anycable.NewServer(&anycable.TestConnection{}).Serve(50051); err != nil {
+			log.Fatal(err)
+		}
+
+	}()
+
+	wg.Add(1)
+	go func() {
+		app := actions.App()
+		if err := app.Serve(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	log.Println("Servers started")
+	wg.Wait()
 }
 
 /*

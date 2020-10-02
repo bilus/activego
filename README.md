@@ -12,6 +12,7 @@
 
 * `brew install protobuf`
 * `gem install anyt`
+* `brew install bradleyjkemp/formulae/grpc-tools`
 
 ## Development flow
 
@@ -19,14 +20,18 @@
 buffalo dev # reloading
 ```
 
+``` shhs
+ANYCABLE_HEADERS="cookie,x-api-token" anycable-go --debug
+```
+
 Running a specific test:
 
 ``` sh
-anyt -c "anycable-go" --target-url="ws://localhost:8080/cable" --skip-rpc --only welcome_test
+anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --only welcome_test
 ```
 
 Running the full suite:
 
 ``` sh
-anyt -c "anycable-go" --target-url="ws://localhost:8080/cable" --skip-rpc
+anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc
 ```
