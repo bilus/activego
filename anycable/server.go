@@ -10,22 +10,33 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
+type CommandData map[string]interface{}
+
+type Channel interface {
+	HandleAction(action string, data CommandData) error
+	Identifier() string
+}
+
+type ChannelFactory func(identifier string, socket *Socket) (Channel, error)
+
 type Connection interface {
 	HandleOpen() error
 	HandleCommand(identifier, command, data string) error
 }
 
-type ConnectionFactory func(c context.Context, env *Env, socket *Socket) (Connection, error)
+type ConnectionFactory func(context.Context, *Env, *Socket, ChannelFactory) (Connection, error)
 
 // Server implements AnyCable server.
 type Server struct {
 	ConnectionFactory ConnectionFactory
+	ChannelFactory    ChannelFactory
 }
 
 // NewServer creates an instance of our server
-func NewServer(cf ConnectionFactory) *Server {
+func NewServer(connectionFactory ConnectionFactory, channelFactory ChannelFactory) *Server {
 	return &Server{
-		ConnectionFactory: cf,
+		ConnectionFactory: connectionFactory,
+		ChannelFactory:    channelFactory,
 	}
 }
 
@@ -41,7 +52,8 @@ func (s *Server) Serve(port int) error {
 
 func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, r.Env, &socket)
+	// TODO: Just pass new channel, not factory?
+	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.ChannelFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -73,20 +85,16 @@ func (t CommandResponseTransmission) Marshal() (string, error) {
 	return string(bs), nil
 }
 
-type ResponseTransmission interface {
-	Marshal() (string, error)
-}
-
 type Socket struct {
 	transmissions []string
 }
 
-func (s *Socket) Write(t ResponseTransmission) error {
-	json, err := t.Marshal()
+func (s *Socket) Write(t interface{}) error {
+	json, err := json.Marshal(t)
 	if err != nil {
 		return err
 	}
-	s.transmissions = append(s.transmissions, json)
+	s.transmissions = append(s.transmissions, string(json))
 	return nil
 }
 
@@ -96,7 +104,7 @@ type CommandSocket struct {
 
 func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, m.Env, &socket)
+	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.ChannelFactory)
 	if err != nil {
 		return nil, err
 	}

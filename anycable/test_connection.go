@@ -13,17 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
-type Channel interface {
-	HandleAction(message string) error
-}
-
-type ChannelFactory func() (Channel, error)
-
 type TestChannel struct {
+	socket     *Socket
+	identifier string
 }
 
 // TODO: ReflectChannel
-func (ch *TestChannel) HandleAction(action string) error {
+func (ch *TestChannel) HandleAction(action string, data CommandData) error {
 	// TODO: Handle missing method.
 	// TODO: Change snake case to camel case.
 	methodName := strcase.ToCamel(action)
@@ -31,7 +27,7 @@ func (ch *TestChannel) HandleAction(action string) error {
 	if !method.IsValid() {
 		return fmt.Errorf("no such method TestChannel#%v", methodName)
 	}
-	result := method.Call([]reflect.Value{})
+	result := method.Call([]reflect.Value{reflect.ValueOf(data)})
 	err := result[0].Interface()
 	if err == nil {
 		return nil
@@ -39,12 +35,36 @@ func (ch *TestChannel) HandleAction(action string) error {
 	return err.(error)
 }
 
-func (ch *TestChannel) Tick() error {
-	return nil
+func (ch *TestChannel) Identifier() string {
+	return ch.identifier
 }
 
-func CreateTestChannel() (Channel, error) {
-	return &TestChannel{}, nil
+type MessageResponseTransmission struct {
+	Message    interface{} `json:"message"`
+	Identifier string      `json:"identifier"`
+}
+
+func (ch *TestChannel) Tick(CommandData) error {
+	return ch.socket.Write(MessageResponseTransmission{
+		Message:    "tock",
+		Identifier: ch.Identifier(),
+	})
+}
+
+func (ch *TestChannel) Echo(data CommandData) error {
+	return ch.socket.Write(MessageResponseTransmission{
+		Message: map[string]interface{}{
+			"response": data["text"],
+		},
+		Identifier: ch.Identifier(),
+	})
+}
+
+func CreateTestChannel(identifier string, socket *Socket) (Channel, error) {
+	return &TestChannel{
+		identifier: identifier,
+		socket:     socket,
+	}, nil
 }
 
 type ChannelIdentifier struct {
@@ -53,12 +73,13 @@ type ChannelIdentifier struct {
 
 type TestConnection struct {
 	// Connection
-	env     *Env
-	socket  *Socket
-	request *http.Request
+	env            *Env
+	socket         *Socket
+	request        *http.Request
+	channelFactory ChannelFactory
 }
 
-func CreateTestConnection(c context.Context, env *Env, socket *Socket) (Connection, error) {
+func CreateTestConnection(c context.Context, env *Env, socket *Socket, channelFactory ChannelFactory) (Connection, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
@@ -69,9 +90,10 @@ func CreateTestConnection(c context.Context, env *Env, socket *Socket) (Connecti
 	}
 	request := http.Request{Header: header, URL: u}
 	return &TestConnection{
-		env:     env,
-		socket:  socket,
-		request: &request,
+		env:            env,
+		socket:         socket,
+		request:        &request,
+		channelFactory: channelFactory,
 	}, nil
 }
 
@@ -123,8 +145,6 @@ func (c *TestConnection) HandleOpen() error {
 	return testCases.runAll(c)
 }
 
-type CommandData map[string]interface{}
-
 func (c *TestConnection) HandleCommand(identifier, command, data string) error {
 	testCases := TestCases{
 		"*": func() bool {
@@ -150,7 +170,7 @@ func (c *TestConnection) HandleCommand(identifier, command, data string) error {
 				})
 				return true
 			case "message":
-				channel, err := CreateTestChannel()
+				channel, err := c.channelFactory(identifier, c.socket)
 				if err != nil {
 					log.Printf("Error creating channel: %v", err)
 					return false
@@ -168,7 +188,7 @@ func (c *TestConnection) HandleCommand(identifier, command, data string) error {
 						log.Printf("Expecting action to be a string, got this instead: %v", actionI)
 						return false
 					}
-					err = channel.HandleAction(action)
+					err = channel.HandleAction(action, parsedData)
 					if err != nil {
 						log.Printf("Error handling action %q: %v", action, err)
 						return false
