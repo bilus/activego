@@ -19,7 +19,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		log.Println("Starting AnyCable backend listening on 50051")
-		if err := anycable.NewServer(&anycable.TestConnection{}).Serve(50051); err != nil {
+		if err := anycable.NewServer(anycable.CreateTestConnection).Serve(50051); err != nil {
 			log.Fatal(err)
 		}
 

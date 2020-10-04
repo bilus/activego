@@ -2,92 +2,30 @@ package anycable
 
 import (
 	context "context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
-	"net/http"
-	"net/url"
-	"regexp"
 
 	grpc "google.golang.org/grpc"
 )
 
+type Connection interface {
+	HandleOpen() error
+	HandleCommand(identifier, command string) error
+}
+
+type ConnectionFactory func(c context.Context, env *Env, socket *Socket) (Connection, error)
+
 // Server implements AnyCable server.
 type Server struct {
-	Connection Connection
-}
-
-// type Hub struct {
-// 	func Add(socketHandle interface{}, channelID)
-// }
-
-type Connection interface {
-	HandleOpen(env *Env) error
-}
-
-type TestConnection struct {
-}
-
-func request(env *Env) (*http.Request, error) {
-	header := http.Header{}
-	for key, value := range env.Headers {
-		header.Set(key, value)
-	}
-	u, err := url.Parse(env.Url)
-	if err != nil {
-		return nil, err
-	}
-	return &http.Request{Header: header, URL: u}, nil
-}
-
-func (c *TestConnection) HandleOpen(env *Env) error {
-	testCases := map[string]func(req *http.Request) bool{
-		"request_url": func(req *http.Request) bool {
-			ok, err := regexp.MatchString("test=request_url", req.URL.String())
-			return ok && err == nil
-		},
-		"cookies": func(req *http.Request) bool {
-			username, err := req.Cookie("username")
-			if err != nil {
-				log.Printf("Error reading username from cookies: %v", err)
-				return false
-			}
-			return username.Value == "john green"
-
-		},
-		"headers": func(req *http.Request) bool {
-			return req.Header.Get("X-Api-Token") == "abc"
-		},
-		"reasons": func(req *http.Request) bool {
-			return req.URL.Query().Get("reason") != "unauthorized"
-		},
-	}
-
-	req, err := request(env)
-	if err != nil {
-		return err
-	}
-	testName := req.URL.Query().Get("test")
-	if testName == "" {
-		return nil
-	}
-	test, ok := testCases[testName]
-	if !ok {
-		log.Printf("No such test: %q", testName)
-		return fmt.Errorf("no such test: %q", testName)
-	}
-	if success := test(req); !success {
-		log.Printf("Test %q failed", testName)
-		return fmt.Errorf("test %q failed", testName)
-	}
-
-	return nil
+	ConnectionFactory ConnectionFactory
 }
 
 // NewServer creates an instance of our server
-func NewServer(c Connection) *Server {
+func NewServer(cf ConnectionFactory) *Server {
 	return &Server{
-		Connection: c,
+		ConnectionFactory: cf,
 	}
 }
 
@@ -102,25 +40,76 @@ func (s *Server) Serve(port int) error {
 }
 
 func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
-	log.Println("Request header", r.Headers)
-	err := s.Connection.HandleOpen(r.Env)
+	socket := Socket{}
+	connection, err := s.ConnectionFactory(c, r.Env, &socket)
 	if err != nil {
+		return nil, err
+	}
+	if err := connection.HandleOpen(); err != nil {
 		return &ConnectionResponse{
 			Status:        Status_FAILURE,
-			Transmissions: []string{`{"type":"disconnect","reason":"unauthorized","reconnect":false}`}, // TDO
+			Transmissions: []string{`{"type":"disconnect","reason":"unauthorized","reconnect":false}`}, // TODO: Reason from err
 		}, nil
 	}
 
 	return &ConnectionResponse{
 		Status: Status_SUCCESS,
 		// TODO: Identifiers
-		Transmissions: []string{`{"type":"welcome"}`},
+		Transmissions: []string{`{"type":"welcome"}`}, // TODO: User socket.
 		// TODO: EnvResponse
 	}, nil
 }
 
-func (s *Server) Command(context.Context, *CommandMessage) (*CommandResponse, error) {
-	return &CommandResponse{}, nil
+type CommandResponseTransmission struct {
+	Type       string `json:"type"`
+	Identifier string `json:"identifier"`
+}
+
+func (t CommandResponseTransmission) Marshal() (string, error) {
+	bs, err := json.Marshal(t)
+	if err != nil {
+		return "", err
+	}
+	return string(bs), nil
+}
+
+type ResponseTransmission interface {
+	Marshal() (string, error)
+}
+
+type Socket struct {
+	transmissions []string
+}
+
+func (s *Socket) Write(t ResponseTransmission) error {
+	json, err := t.Marshal()
+	if err != nil {
+		return err
+	}
+	s.transmissions = append(s.transmissions, json)
+	return nil
+}
+
+type CommandSocket struct {
+	r *CommandResponse
+}
+
+func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
+	socket := Socket{}
+	connection, err := s.ConnectionFactory(c, m.Env, &socket)
+	if err != nil {
+		return nil, err
+	}
+	if err := connection.HandleCommand(m.Identifier, m.Command); err != nil {
+		return &CommandResponse{
+			Status: Status_FAILURE,
+			// TODO
+		}, nil
+	}
+	return &CommandResponse{
+		Status:        Status_SUCCESS,
+		Transmissions: socket.transmissions,
+	}, nil
 }
 
 func (s *Server) Disconnect(context.Context, *DisconnectRequest) (*DisconnectResponse, error) {

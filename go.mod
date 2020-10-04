@@ -13,8 +13,9 @@ require (
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/gobuffalo/pop/v5 v5.2.4
 	github.com/gobuffalo/suite v2.8.2+incompatible
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.4.2
 	github.com/unrolled/secure v0.0.0-20190103195806-76e6d4e9b90c
 	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.22.0
+	google.golang.org/protobuf v1.24.0
+	k8s.io/apimachinery v0.19.2
 )
