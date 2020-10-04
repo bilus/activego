@@ -14,6 +14,8 @@ require (
 	github.com/gobuffalo/pop/v5 v5.2.4
 	github.com/gobuffalo/suite v2.8.2+incompatible
 	github.com/golang/protobuf v1.4.2
+	github.com/iancoleman/strcase v0.1.2
+	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/unrolled/secure v0.0.0-20190103195806-76e6d4e9b90c
 	google.golang.org/grpc v1.29.1
 	google.golang.org/protobuf v1.24.0

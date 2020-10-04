@@ -12,7 +12,7 @@ import (
 
 type Connection interface {
 	HandleOpen() error
-	HandleCommand(identifier, command string) error
+	HandleCommand(identifier, command, data string) error
 }
 
 type ConnectionFactory func(c context.Context, env *Env, socket *Socket) (Connection, error)
@@ -100,7 +100,7 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	if err != nil {
 		return nil, err
 	}
-	if err := connection.HandleCommand(m.Identifier, m.Command); err != nil {
+	if err := connection.HandleCommand(m.Identifier, m.Command, m.Data); err != nil {
 		return &CommandResponse{
 			Status: Status_FAILURE,
 			// TODO
