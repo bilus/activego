@@ -13,6 +13,7 @@ import (
 type CommandData map[string]interface{}
 
 type Channel interface {
+	HandleSubscribe() error
 	HandleAction(action string, data CommandData) error
 	Identifier() string
 }

@@ -18,6 +18,31 @@ type TestChannel struct {
 	identifier string
 }
 
+func (ch *TestChannel) HandleSubscribe() error {
+	channelIdentifier := ChannelIdentifier{}
+	err := json.Unmarshal([]byte(ch.identifier), &channelIdentifier)
+	if err != nil {
+		return fmt.Errorf("unparsable identifier: %q: %v", ch.identifier, err)
+	}
+	if channelIdentifier.Channel == "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel" {
+		ch.socket.Write(CommandResponseTransmission{
+			Type:       "reject_subscription",
+			Identifier: ch.identifier,
+		})
+	}
+	if channelIdentifier.Channel == "Anyt::TestChannels::SubscriptionTransmissionsChannel" {
+		ch.socket.Write(MessageResponseTransmission{
+			Message:    "hello",
+			Identifier: ch.identifier,
+		})
+		ch.socket.Write(MessageResponseTransmission{
+			Message:    "world",
+			Identifier: ch.identifier,
+		})
+	}
+	return nil
+}
+
 // TODO: ReflectChannel
 func (ch *TestChannel) HandleAction(action string, data CommandData) error {
 	// TODO: Handle missing method.
@@ -118,6 +143,7 @@ func (testCases TestCases) runAll(c *TestConnection) error {
 }
 
 func (c *TestConnection) HandleOpen() error {
+	// Delegate to actual collection.
 	testCases := TestCases{
 		"request_url": func() bool {
 			ok, err := regexp.MatchString("test=request_url", c.request.URL.String())
@@ -146,61 +172,38 @@ func (c *TestConnection) HandleOpen() error {
 }
 
 func (c *TestConnection) HandleCommand(identifier, command, data string) error {
-	testCases := TestCases{
-		"*": func() bool {
-			channelIdentifier := ChannelIdentifier{}
-			err := json.Unmarshal([]byte(identifier), &channelIdentifier)
-			if err != nil {
-				log.Printf("Unexpected or missing identifier: %v", identifier)
-				return false
-			}
-			switch command {
-			case "subscribe":
-				if channelIdentifier.Channel == "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel" {
-					c.socket.Write(CommandResponseTransmission{
-						Type:       "reject_subscription",
-						Identifier: identifier,
-					})
-
-					return true
-				}
-				c.socket.Write(CommandResponseTransmission{
-					Type:       "confirm_subscription",
-					Identifier: identifier,
-				})
-				return true
-			case "message":
-				channel, err := c.channelFactory(identifier, c.socket)
-				if err != nil {
-					log.Printf("Error creating channel: %v", err)
-					return false
-				}
-				parsedData := CommandData{}
-				err = json.Unmarshal([]byte(data), &parsedData)
-				if err != nil {
-					log.Printf("Error parsing data %v: %v", data, err)
-					return false
-				}
-				actionI, ok := parsedData["action"]
-				if ok {
-					action, ok := actionI.(string)
-					if !ok {
-						log.Printf("Expecting action to be a string, got this instead: %v", actionI)
-						return false
-					}
-					err = channel.HandleAction(action, parsedData)
-					if err != nil {
-						log.Printf("Error handling action %q: %v", action, err)
-						return false
-					}
-				}
-				return true
-
-			default:
-				log.Printf("No such command %q", command)
-				return false
-			}
-		},
+	channel, err := c.channelFactory(identifier, c.socket)
+	if err != nil {
+		return fmt.Errorf("error creating channel: %v", err)
 	}
-	return testCases.runAll(c)
+
+	switch command {
+	case "subscribe":
+		// TODO: Handle reject (ok, err)
+		if err := channel.HandleSubscribe(); err != nil {
+			return err
+		}
+		return c.socket.Write(CommandResponseTransmission{
+			Type:       "confirm_subscription",
+			Identifier: identifier,
+		})
+	case "message":
+		parsedData := CommandData{}
+		if err = json.Unmarshal([]byte(data), &parsedData); err != nil {
+			return fmt.Errorf("error parsing data %v: %v", data, err)
+		}
+		actionI, ok := parsedData["action"]
+		if ok {
+			action, ok := actionI.(string)
+			if !ok {
+				return fmt.Errorf("expecting action to be a string, got: %q", actionI)
+			}
+			if err = channel.HandleAction(action, parsedData); err != nil {
+				return fmt.Errorf("error handling action %q: %v", action, err)
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported command %q", command)
+	}
 }
