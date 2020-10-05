@@ -4,8 +4,6 @@ import (
 	context "context"
 	"fmt"
 	"log"
-	"net/http"
-	"net/url"
 	reflect "reflect"
 	"regexp"
 
@@ -65,11 +63,6 @@ func (ch *TestChannel) Identifier() string {
 	return ch.identifier
 }
 
-type MessageResponseTransmission struct {
-	Message    interface{} `json:"message"`
-	Identifier string      `json:"identifier"`
-}
-
 func (ch *TestChannel) Tick(CommandData) error {
 	return ch.socket.Write(MessageResponseTransmission{
 		Message:    "tock",
@@ -99,54 +92,20 @@ type ChannelIdentifier struct {
 }
 
 type TestConnection struct {
-	// Connection
-	env     *Env
-	request *http.Request
-
-	socket      *Socket
-	broadcaster *Broadcaster
-
-	channelFactory ChannelFactory
+	*StatelessConnection
 }
 
 func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory) (Connection, error) {
-	header := http.Header{}
-	for key, value := range env.Headers {
-		header.Set(key, value)
-	}
-	u, err := url.Parse(env.Url)
+	connection, err := NewStatelessConnection(c, env, socket, broadcaster, channelFactory)
 	if err != nil {
 		return nil, err
 	}
-	request := http.Request{Header: header, URL: u}
 	return &TestConnection{
-		env:            env,
-		request:        &request,
-		socket:         socket,
-		broadcaster:    broadcaster,
-		channelFactory: channelFactory,
+		StatelessConnection: connection,
 	}, nil
 }
 
 type TestCases map[string]func() bool
-
-func (testCases TestCases) runAll(c *TestConnection) error {
-	testName := c.request.URL.Query().Get("test")
-	if testName == "" {
-		testName = "*" // Special catch all for default behaviour.
-	}
-	test, ok := testCases[testName]
-	if !ok {
-		log.Printf("No such test: %q", testName)
-		return fmt.Errorf("no such test: %q", testName)
-	}
-	if success := test(); !success {
-		log.Printf("Test %q failed", testName)
-		return fmt.Errorf("test %q failed", testName)
-	}
-
-	return nil
-}
 
 func (c *TestConnection) HandleOpen() error {
 	// Delegate to actual collection.
@@ -174,42 +133,27 @@ func (c *TestConnection) HandleOpen() error {
 			return true
 		},
 	}
-	return testCases.runAll(c)
+	if err := testCases.runAll(c); err != nil {
+		return err
+	}
+
+	return c.StatelessConnection.HandleOpen()
 }
 
-func (c *TestConnection) HandleCommand(identifier, command, data string) error {
-	channel, err := c.channelFactory(identifier, c.socket, c.broadcaster)
-	if err != nil {
-		return fmt.Errorf("error creating channel: %v", err)
+func (testCases TestCases) runAll(c *TestConnection) error {
+	testName := c.request.URL.Query().Get("test")
+	if testName == "" {
+		testName = "*" // Special catch all for default behaviour.
+	}
+	test, ok := testCases[testName]
+	if !ok {
+		log.Printf("No such test: %q", testName)
+		return fmt.Errorf("no such test: %q", testName)
+	}
+	if success := test(); !success {
+		log.Printf("Test %q failed", testName)
+		return fmt.Errorf("test %q failed", testName)
 	}
 
-	switch command {
-	case "subscribe":
-		// TODO: Handle reject (ok, err)
-		if err := channel.HandleSubscribe(); err != nil {
-			return err
-		}
-		return c.socket.Write(CommandResponseTransmission{
-			Type:       "confirm_subscription",
-			Identifier: identifier,
-		})
-	case "message":
-		parsedData := CommandData{}
-		if err = json.Unmarshal([]byte(data), &parsedData); err != nil {
-			return fmt.Errorf("error parsing data %v: %v", data, err)
-		}
-		actionI, ok := parsedData["action"]
-		if ok {
-			action, ok := actionI.(string)
-			if !ok {
-				return fmt.Errorf("expecting action to be a string, got: %q", actionI)
-			}
-			if err = channel.HandleAction(action, parsedData); err != nil {
-				return fmt.Errorf("error handling action %q: %v", action, err)
-			}
-		}
-		return nil
-	default:
-		return fmt.Errorf("unsupported command %q", command)
-	}
+	return nil
 }

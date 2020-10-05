@@ -2,7 +2,6 @@ package anycable
 
 import (
 	context "context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -75,19 +74,6 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	}, nil
 }
 
-type CommandResponseTransmission struct {
-	Type       string `json:"type"`
-	Identifier string `json:"identifier"`
-}
-
-func (t CommandResponseTransmission) Marshal() (string, error) {
-	bs, err := json.Marshal(t)
-	if err != nil {
-		return "", err
-	}
-	return string(bs), nil
-}
-
 func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
 	socket := Socket{}
 	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory)
@@ -96,7 +82,8 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	}
 	if err := connection.HandleCommand(m.Identifier, m.Command, m.Data); err != nil {
 		return &CommandResponse{
-			Status: Status_FAILURE,
+			Status:   Status_FAILURE,
+			ErrorMsg: fmt.Sprintf("Error handling command %q: %v", m.Command, err),
 			// TODO
 		}, nil
 	}
