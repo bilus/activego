@@ -18,26 +18,28 @@ type Channel interface {
 	Identifier() string
 }
 
-type ChannelFactory func(identifier string, socket *Socket) (Channel, error)
+type ChannelFactory func(identifier string, socket *Socket, broadcaster *Broadcaster) (Channel, error)
 
 type Connection interface {
 	HandleOpen() error
 	HandleCommand(identifier, command, data string) error
 }
 
-type ConnectionFactory func(context.Context, *Env, *Socket, ChannelFactory) (Connection, error)
+type ConnectionFactory func(context.Context, *Env, *Socket, *Broadcaster, ChannelFactory) (Connection, error)
 
 // Server implements AnyCable server.
 type Server struct {
 	ConnectionFactory ConnectionFactory
 	ChannelFactory    ChannelFactory
+	Broadcaster       *Broadcaster
 }
 
 // NewServer creates an instance of our server
-func NewServer(connectionFactory ConnectionFactory, channelFactory ChannelFactory) *Server {
+func NewServer(connectionFactory ConnectionFactory, channelFactory ChannelFactory, broadcaster *Broadcaster) *Server {
 	return &Server{
 		ConnectionFactory: connectionFactory,
 		ChannelFactory:    channelFactory,
+		Broadcaster:       broadcaster,
 	}
 }
 
@@ -54,7 +56,7 @@ func (s *Server) Serve(port int) error {
 func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
 	socket := Socket{}
 	// TODO: Just pass new channel, not factory?
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.ChannelFactory)
+	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +70,7 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	return &ConnectionResponse{
 		Status: Status_SUCCESS,
 		// TODO: Identifiers
-		Transmissions: []string{`{"type":"welcome"}`}, // TODO: User socket.
+		Transmissions: []string{`{"type":"welcome"}`}, // TODO: Use socket.
 		// TODO: EnvResponse
 	}, nil
 }
@@ -86,26 +88,9 @@ func (t CommandResponseTransmission) Marshal() (string, error) {
 	return string(bs), nil
 }
 
-type Socket struct {
-	transmissions []string
-}
-
-func (s *Socket) Write(t interface{}) error {
-	json, err := json.Marshal(t)
-	if err != nil {
-		return err
-	}
-	s.transmissions = append(s.transmissions, string(json))
-	return nil
-}
-
-type CommandSocket struct {
-	r *CommandResponse
-}
-
 func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.ChannelFactory)
+	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory)
 	if err != nil {
 		return nil, err
 	}

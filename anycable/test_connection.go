@@ -14,8 +14,9 @@ import (
 )
 
 type TestChannel struct {
-	socket     *Socket
-	identifier string
+	socket      *Socket
+	broadcaster *Broadcaster
+	identifier  string
 }
 
 func (ch *TestChannel) HandleSubscribe() error {
@@ -85,10 +86,11 @@ func (ch *TestChannel) Echo(data CommandData) error {
 	})
 }
 
-func CreateTestChannel(identifier string, socket *Socket) (Channel, error) {
+func CreateTestChannel(identifier string, socket *Socket, broadcaster *Broadcaster) (Channel, error) {
 	return &TestChannel{
-		identifier: identifier,
-		socket:     socket,
+		identifier:  identifier,
+		socket:      socket,
+		broadcaster: broadcaster,
 	}, nil
 }
 
@@ -98,13 +100,16 @@ type ChannelIdentifier struct {
 
 type TestConnection struct {
 	// Connection
-	env            *Env
-	socket         *Socket
-	request        *http.Request
+	env     *Env
+	request *http.Request
+
+	socket      *Socket
+	broadcaster *Broadcaster
+
 	channelFactory ChannelFactory
 }
 
-func CreateTestConnection(c context.Context, env *Env, socket *Socket, channelFactory ChannelFactory) (Connection, error) {
+func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory) (Connection, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
@@ -116,8 +121,9 @@ func CreateTestConnection(c context.Context, env *Env, socket *Socket, channelFa
 	request := http.Request{Header: header, URL: u}
 	return &TestConnection{
 		env:            env,
-		socket:         socket,
 		request:        &request,
+		socket:         socket,
+		broadcaster:    broadcaster,
 		channelFactory: channelFactory,
 	}, nil
 }
@@ -172,7 +178,7 @@ func (c *TestConnection) HandleOpen() error {
 }
 
 func (c *TestConnection) HandleCommand(identifier, command, data string) error {
-	channel, err := c.channelFactory(identifier, c.socket)
+	channel, err := c.channelFactory(identifier, c.socket, c.broadcaster)
 	if err != nil {
 		return fmt.Errorf("error creating channel: %v", err)
 	}

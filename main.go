@@ -6,6 +6,7 @@ import (
 
 	"stimulus/actions"
 	"stimulus/anycable"
+	"stimulus/anycable/adapters"
 )
 
 // main is the starting point for your Buffalo application.
@@ -19,7 +20,8 @@ func main() {
 	wg.Add(1)
 	go func() {
 		log.Println("Starting AnyCable backend listening on 50051")
-		if err := anycable.NewServer(anycable.CreateTestConnection, anycable.CreateTestChannel).Serve(50051); err != nil {
+		broadcaster := anycable.NewBroadcaster(adapters.NewHTTPBroadcastAdapter("http://localhost:8090/_broadcast")) // TODO: Make configurable.
+		if err := anycable.NewServer(anycable.CreateTestConnection, anycable.CreateTestChannel, broadcaster).Serve(50051); err != nil {
 			log.Fatal(err)
 		}
 
