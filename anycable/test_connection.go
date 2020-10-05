@@ -134,6 +134,12 @@ func (c *TestConnection) HandleOpen() error {
 		},
 	}
 	if err := testCases.runAll(c); err != nil {
+		c.socket.Write(DisconnectResponseTransmission{
+			Type:      "disconnect",
+			Reason:    "unauthorized",
+			Reconnect: false,
+		})
+
 		return err
 	}
 

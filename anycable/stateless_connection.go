@@ -38,8 +38,9 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 }
 
 func (c *StatelessConnection) HandleOpen() error {
-	// TODO: Respond here.
-	return nil
+	return c.socket.Write(WelcomeResponseTransmission{
+		Type: "welcome",
+	})
 }
 
 func (c *StatelessConnection) HandleCommand(identifier, command, data string) error {

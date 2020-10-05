@@ -62,14 +62,14 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	if err := connection.HandleOpen(); err != nil {
 		return &ConnectionResponse{
 			Status:        Status_FAILURE,
-			Transmissions: []string{`{"type":"disconnect","reason":"unauthorized","reconnect":false}`}, // TODO: Reason from err
+			Transmissions: socket.transmissions,
 		}, nil
 	}
 
 	return &ConnectionResponse{
 		Status: Status_SUCCESS,
 		// TODO: Identifiers
-		Transmissions: []string{`{"type":"welcome"}`}, // TODO: Use socket.
+		Transmissions: socket.transmissions,
 		// TODO: EnvResponse
 	}, nil
 }
