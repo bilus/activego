@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -18,6 +19,7 @@ func NewHTTPBroadcastAdapter(broadcastURL string) *HTTPBroadcastAdapter {
 }
 
 func (a *HTTPBroadcastAdapter) BroadcastRaw(payload interface{}) error {
+	log.Printf("Broadcasting %v t %v", payload, a.BroadcastURL)
 	requestBody, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("error marshaling raw broadcast payload: %w", err)

@@ -23,13 +23,13 @@ func (ch *TestChannel) HandleSubscribe() error {
 	if err != nil {
 		return fmt.Errorf("unparsable identifier: %q: %v", ch.identifier, err)
 	}
-	if channelIdentifier.Channel == "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel" {
+	switch channelIdentifier.Channel {
+	case "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel":
 		ch.socket.Write(CommandResponseTransmission{
 			Type:       "reject_subscription",
 			Identifier: ch.identifier,
 		})
-	}
-	if channelIdentifier.Channel == "Anyt::TestChannels::SubscriptionTransmissionsChannel" {
+	case "Anyt::TestChannels::SubscriptionTransmissionsChannel":
 		ch.socket.Write(MessageResponseTransmission{
 			Message:    "hello",
 			Identifier: ch.identifier,
@@ -38,6 +38,29 @@ func (ch *TestChannel) HandleSubscribe() error {
 			Message:    "world",
 			Identifier: ch.identifier,
 		})
+	case "Anyt::TestChannels::RequestAChannel":
+		ch.socket.Subscribe("request_a")
+	case "Anyt::TestChannels::RequestBChannel":
+		ch.socket.Subscribe("request_b")
+	case "Anyt::TestChannels::RequestCChannel":
+		ch.socket.Subscribe("request_c")
+	}
+	return nil
+}
+
+func (ch *TestChannel) HandleUnsubscribe() error {
+	channelIdentifier := ChannelIdentifier{}
+	err := json.Unmarshal([]byte(ch.identifier), &channelIdentifier)
+	if err != nil {
+		return fmt.Errorf("unparsable identifier: %q: %v", ch.identifier, err)
+	}
+	switch channelIdentifier.Channel {
+	case "Anyt::TestChannels::RequestAChannel":
+		ch.broadcaster.Broadcast("request_a", "user left")
+	case "Anyt::TestChannels::RequestBChannel":
+		ch.broadcaster.Broadcast("request_b", "user left")
+	case "Anyt::TestChannels::RequestCChannel":
+		ch.broadcaster.Broadcast("request_c", "user left") // TODO: "user left#{params[:id].presence}"
 	}
 	return nil
 }

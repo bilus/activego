@@ -3,6 +3,8 @@ module stimulus
 go 1.14
 
 require (
+	github.com/apex/log v1.9.0
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gobuffalo/buffalo v0.15.5
 	github.com/gobuffalo/buffalo-pop/v2 v2.2.0
 	github.com/gobuffalo/envy v1.9.0
