@@ -41,6 +41,7 @@ type Channel interface {
 	HandleAction(action string, data CommandData) error
 	IdentifierJSON() string
 	Identifier() ChannelIdentifier
+	StreamFrom(broadcasting string) error
 }
 
 // TODO: Pass ChannelIdentifier.

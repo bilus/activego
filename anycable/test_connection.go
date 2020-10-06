@@ -13,7 +13,7 @@ import (
 type TestChannel struct {
 	socket         *Socket
 	broadcaster    *Broadcaster
-	identifierJSON string
+	identifierJSON string // TODO: Marshal identifier.
 	identifier     ChannelIdentifier
 }
 
@@ -39,6 +39,8 @@ func (ch *TestChannel) HandleSubscribe() error {
 		ch.socket.Subscribe("request_b")
 	case "Anyt::TestChannels::RequestCChannel":
 		ch.socket.Subscribe("request_c")
+	case "Anyt::TestChannels::SingleStreamChannel":
+		ch.StreamFrom("a")
 	}
 	return nil
 }
@@ -78,6 +80,11 @@ func (ch *TestChannel) IdentifierJSON() string {
 
 func (ch *TestChannel) Identifier() ChannelIdentifier {
 	return ch.identifier
+}
+
+func (ch *TestChannel) StreamFrom(broadcasting string) error {
+	ch.socket.Subscribe(broadcasting)
+	return nil
 }
 
 func (ch *TestChannel) Tick(CommandData) error {

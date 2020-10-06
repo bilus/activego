@@ -38,6 +38,15 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc
 ## TODO
 
 - [ ] Pass all anyt tests
+- [ ] Contribute http broadcast adapter to anyt
+
+    ``` ruby
+    AnyCable.config.broadcast_adapter = :http
+    AnyCable.config.http_broadcast_url = 'http://localhost:8090/_broadcast'
+    ```
+
+- [ ] Implement ChannelDispatcher (factory + handling actions)
+      Factory can now just use TestChannel.
 - [ ] Address all TODOs
 - [ ] Write an example app using Golang DSL (to design the DSL)
 - [ ] Create Channel using reflection (aka implement the DSL)
