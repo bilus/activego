@@ -2,6 +2,7 @@ package anycable
 
 import (
 	context "context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -12,22 +13,53 @@ import (
 
 type CommandData map[string]interface{}
 
+type ChannelIdentifier struct {
+	Channel string `json:"channel"`
+	Params  map[string]interface{}
+}
+
+func (identifier *ChannelIdentifier) Unmarshal(bs []byte) error {
+	params := make(map[string]interface{})
+	if err := json.Unmarshal(bs, &params); err != nil {
+		return err
+	}
+	i, ok := params["channel"]
+	if !ok {
+		return fmt.Errorf("missing %q in identifier", "channel")
+	}
+	identifier.Channel, ok = i.(string)
+	if !ok {
+		return fmt.Errorf("missing %q in identifier", "channel")
+	}
+	identifier.Params = params
+	return nil
+}
+
 type Channel interface {
 	HandleSubscribe() error
 	HandleUnsubscribe() error
 	HandleAction(action string, data CommandData) error
-	Identifier() string
+	IdentifierJSON() string
+	Identifier() ChannelIdentifier
 }
 
-type ChannelFactory func(identifier string, socket *Socket, broadcaster *Broadcaster) (Channel, error)
+// TODO: Pass ChannelIdentifier.
+type ChannelFactory func(identifierJSON string, socket *Socket, broadcaster *Broadcaster) (Channel, error)
 
 type Connection interface {
 	HandleOpen() error
 	HandleCommand(identifier, command, data string) error
 	HandleClose(subscriptions []string) error
+	Identifiers() string
 }
 
-type ConnectionFactory func(context.Context, *Env, *Socket, *Broadcaster, ChannelFactory) (Connection, error)
+type ConnectionFactory func(
+	c context.Context,
+	env *Env,
+	socket *Socket,
+	broadcaster *Broadcaster,
+	channelFactory ChannelFactory,
+	identifiers *string) (Connection, error)
 
 // Server implements AnyCable server.
 type Server struct {
@@ -60,7 +92,7 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	spew.Dump(*r)
 	socket := Socket{}
 	// TODO: Just pass new channel, not factory?
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory)
+	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +103,8 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 		}
 	} else {
 		response = ConnectionResponse{
-			Status: Status_SUCCESS,
-			// TODO: Identifiers
+			Status:      Status_SUCCESS,
+			Identifiers: connection.Identifiers(),
 			// TODO: EnvResponse
 		}
 	}
@@ -86,7 +118,7 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	fmt.Println("Cmmand")
 	spew.Dump(*m)
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory)
+	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory, &m.ConnectionIdentifiers)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +144,7 @@ func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*Disconnec
 	fmt.Println("Disconnect")
 	spew.Dump(*r)
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory)
+	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, &r.Identifiers)
 	if err != nil {
 		return nil, err
 	}

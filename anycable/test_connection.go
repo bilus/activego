@@ -8,35 +8,30 @@ import (
 	"regexp"
 
 	"github.com/iancoleman/strcase"
-	"k8s.io/apimachinery/pkg/util/json"
 )
 
 type TestChannel struct {
-	socket      *Socket
-	broadcaster *Broadcaster
-	identifier  string
+	socket         *Socket
+	broadcaster    *Broadcaster
+	identifierJSON string
+	identifier     ChannelIdentifier
 }
 
 func (ch *TestChannel) HandleSubscribe() error {
-	channelIdentifier := ChannelIdentifier{}
-	err := json.Unmarshal([]byte(ch.identifier), &channelIdentifier)
-	if err != nil {
-		return fmt.Errorf("unparsable identifier: %q: %v", ch.identifier, err)
-	}
-	switch channelIdentifier.Channel {
+	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel":
 		ch.socket.Write(CommandResponseTransmission{
 			Type:       "reject_subscription",
-			Identifier: ch.identifier,
+			Identifier: ch.identifierJSON,
 		})
 	case "Anyt::TestChannels::SubscriptionTransmissionsChannel":
 		ch.socket.Write(MessageResponseTransmission{
 			Message:    "hello",
-			Identifier: ch.identifier,
+			Identifier: ch.identifierJSON,
 		})
 		ch.socket.Write(MessageResponseTransmission{
 			Message:    "world",
-			Identifier: ch.identifier,
+			Identifier: ch.identifierJSON,
 		})
 	case "Anyt::TestChannels::RequestAChannel":
 		ch.socket.Subscribe("request_a")
@@ -49,19 +44,13 @@ func (ch *TestChannel) HandleSubscribe() error {
 }
 
 func (ch *TestChannel) HandleUnsubscribe() error {
-	channelIdentifier := ChannelIdentifier{}
-	err := json.Unmarshal([]byte(ch.identifier), &channelIdentifier)
-	if err != nil {
-		return fmt.Errorf("unparsable identifier: %q: %v", ch.identifier, err)
-	}
-	switch channelIdentifier.Channel {
+	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::RequestAChannel":
 		ch.broadcaster.Broadcast("request_a", map[string]string{"data": "user left"})
 	case "Anyt::TestChannels::RequestBChannel":
 		ch.broadcaster.Broadcast("request_b", map[string]string{"data": "user left"})
 	case "Anyt::TestChannels::RequestCChannel":
-		ch.broadcaster.Broadcast("request_c", map[string]string{"data": "user left"})
-		// TODO: "user left#{params[:id].presence}"
+		ch.broadcaster.Broadcast("request_c", map[string]string{"data": fmt.Sprintf("user left%v", ch.Identifier().Params["id"])})
 	}
 	return nil
 }
@@ -83,14 +72,18 @@ func (ch *TestChannel) HandleAction(action string, data CommandData) error {
 	return err.(error)
 }
 
-func (ch *TestChannel) Identifier() string {
+func (ch *TestChannel) IdentifierJSON() string {
+	return ch.identifierJSON
+}
+
+func (ch *TestChannel) Identifier() ChannelIdentifier {
 	return ch.identifier
 }
 
 func (ch *TestChannel) Tick(CommandData) error {
 	return ch.socket.Write(MessageResponseTransmission{
 		Message:    "tock",
-		Identifier: ch.Identifier(),
+		Identifier: ch.IdentifierJSON(),
 	})
 }
 
@@ -99,28 +92,29 @@ func (ch *TestChannel) Echo(data CommandData) error {
 		Message: map[string]interface{}{
 			"response": data["text"],
 		},
-		Identifier: ch.Identifier(),
+		Identifier: ch.IdentifierJSON(),
 	})
 }
 
-func CreateTestChannel(identifier string, socket *Socket, broadcaster *Broadcaster) (Channel, error) {
+func CreateTestChannel(identifierJSON string, socket *Socket, broadcaster *Broadcaster) (Channel, error) {
+	identifier := ChannelIdentifier{}
+	if err := identifier.Unmarshal([]byte(identifierJSON)); err != nil {
+		return nil, err
+	}
 	return &TestChannel{
-		identifier:  identifier,
-		socket:      socket,
-		broadcaster: broadcaster,
+		identifierJSON: identifierJSON,
+		identifier:     identifier,
+		socket:         socket,
+		broadcaster:    broadcaster,
 	}, nil
-}
-
-type ChannelIdentifier struct {
-	Channel string `json:"channel"`
 }
 
 type TestConnection struct {
 	*StatelessConnection
 }
 
-func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory) (Connection, error) {
-	connection, err := NewStatelessConnection(c, env, socket, broadcaster, channelFactory)
+func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers *string) (Connection, error) {
+	connection, err := NewStatelessConnection(c, env, socket, broadcaster, channelFactory, identifiers)
 	if err != nil {
 		return nil, err
 	}

@@ -11,8 +11,9 @@ import (
 )
 
 type StatelessConnection struct {
-	env     *Env
-	request *http.Request
+	env         *Env
+	request     *http.Request
+	identifiers string
 
 	socket      *Socket
 	broadcaster *Broadcaster
@@ -20,7 +21,7 @@ type StatelessConnection struct {
 	channelFactory ChannelFactory
 }
 
-func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory) (*StatelessConnection, error) {
+func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers *string) (*StatelessConnection, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
@@ -29,6 +30,10 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 	if err != nil {
 		return nil, err
 	}
+	safeIdentifiers := ""
+	if identifiers != nil {
+		safeIdentifiers = *identifiers
+	}
 	request := http.Request{Header: header, URL: u}
 	return &StatelessConnection{
 		env:            env,
@@ -36,6 +41,7 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 		socket:         socket,
 		broadcaster:    broadcaster,
 		channelFactory: channelFactory,
+		identifiers:    safeIdentifiers,
 	}, nil
 }
 
@@ -96,4 +102,8 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 	default:
 		return fmt.Errorf("unsupported command %q", command)
 	}
+}
+
+func (c *StatelessConnection) Identifiers() string {
+	return c.identifiers
 }

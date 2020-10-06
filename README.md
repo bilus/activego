@@ -35,3 +35,10 @@ Running the full suite:
 ``` sh
 anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc
 ```
+## TODO
+
+- [ ] Pass all anyt tests
+- [ ] Address all TODOs
+- [ ] Write an example app using Golang DSL (to design the DSL)
+- [ ] Create Channel using reflection (aka implement the DSL)
+- [ ] Redis broadcast adapter
