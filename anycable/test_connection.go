@@ -41,6 +41,13 @@ func (ch *TestChannel) HandleSubscribe() error {
 		ch.socket.Subscribe("request_c")
 	case "Anyt::TestChannels::SingleStreamChannel":
 		ch.StreamFrom("a")
+	case "Anyt::TestChannels::BroadcastDataToStreamChannel":
+		ch.StreamFrom("a")
+	case "Anyt::TestChannels::StreamsWithManyClientsChannel":
+		ch.StreamFrom("a")
+	case "Anyt::TestChannels::StopStreamsChannel":
+		ch.StreamFrom("a")
+		ch.StreamFrom("b")
 	}
 	return nil
 }
@@ -87,11 +94,20 @@ func (ch *TestChannel) StreamFrom(broadcasting string) error {
 	return nil
 }
 
+func (ch *TestChannel) StopStreamFrom(broadcasting string) error {
+	ch.socket.Unsubscribe(broadcasting)
+	return nil
+}
+
 func (ch *TestChannel) Tick(CommandData) error {
 	return ch.socket.Write(MessageResponseTransmission{
 		Message:    "tock",
 		Identifier: ch.IdentifierJSON(),
 	})
+}
+
+func (ch *TestChannel) Unfollow(data CommandData) error {
+	return ch.StopStreamFrom(data["name"].(string))
 }
 
 func (ch *TestChannel) Echo(data CommandData) error {

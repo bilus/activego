@@ -42,6 +42,7 @@ type Channel interface {
 	IdentifierJSON() string
 	Identifier() ChannelIdentifier
 	StreamFrom(broadcasting string) error
+	StopStreamFrom(broadcasting string) error
 }
 
 // TODO: Pass ChannelIdentifier.
