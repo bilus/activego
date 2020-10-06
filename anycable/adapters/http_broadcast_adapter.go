@@ -19,11 +19,12 @@ func NewHTTPBroadcastAdapter(broadcastURL string) *HTTPBroadcastAdapter {
 }
 
 func (a *HTTPBroadcastAdapter) BroadcastRaw(payload interface{}) error {
-	log.Printf("Broadcasting %v t %v", payload, a.BroadcastURL)
+	log.Println("Broadcast to", a.BroadcastURL)
 	requestBody, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("error marshaling raw broadcast payload: %w", err)
 	}
+	log.Println(string(requestBody))
 	resp, err := http.Post(a.BroadcastURL, "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("error POSTing broadcast: %w", err)

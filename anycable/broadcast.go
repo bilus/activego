@@ -1,5 +1,7 @@
 package anycable
 
+import "encoding/json"
+
 type BroadcastAdapter interface {
 	BroadcastRaw(payload interface{}) error
 }
@@ -12,13 +14,24 @@ func NewBroadcaster(adapter BroadcastAdapter) *Broadcaster {
 	return &Broadcaster{adapter}
 }
 
+type BroadcastData struct {
+	Message interface{} `json:"message"`
+}
+
 type Broadcast struct {
-	Stream string      `json:"stream"`
-	Data   interface{} `json:"data"`
+	Stream string `json:"stream"`
+	Data   string `json:"data"`
 }
 
 func (b *Broadcaster) Broadcast(stream string, data interface{}) error {
-	return b.adapter.BroadcastRaw(Broadcast{Stream: stream, Data: data})
+	bs, err := json.Marshal(&data)
+	if err != nil {
+		return err
+	}
+	return b.adapter.BroadcastRaw(Broadcast{
+		Stream: stream,
+		Data:   string(bs),
+	})
 }
 
 type CommandBroadcast struct {

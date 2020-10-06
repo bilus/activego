@@ -56,11 +56,12 @@ func (ch *TestChannel) HandleUnsubscribe() error {
 	}
 	switch channelIdentifier.Channel {
 	case "Anyt::TestChannels::RequestAChannel":
-		ch.broadcaster.Broadcast("request_a", "user left")
+		ch.broadcaster.Broadcast("request_a", map[string]string{"data": "user left"})
 	case "Anyt::TestChannels::RequestBChannel":
-		ch.broadcaster.Broadcast("request_b", "user left")
+		ch.broadcaster.Broadcast("request_b", map[string]string{"data": "user left"})
 	case "Anyt::TestChannels::RequestCChannel":
-		ch.broadcaster.Broadcast("request_c", "user left") // TODO: "user left#{params[:id].presence}"
+		ch.broadcaster.Broadcast("request_c", map[string]string{"data": "user left"})
+		// TODO: "user left#{params[:id].presence}"
 	}
 	return nil
 }
