@@ -44,6 +44,7 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 	}, nil
 }
 
+// TODO: Handle authorization failure.
 func (c *StatelessConnection) HandleOpen() error {
 	return c.socket.Write(WelcomeResponseTransmission{
 		Type: "welcome",

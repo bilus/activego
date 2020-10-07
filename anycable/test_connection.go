@@ -48,6 +48,9 @@ func (ch *TestChannel) HandleSubscribe() error {
 	case "Anyt::TestChannels::StopStreamsChannel":
 		ch.StreamFrom("a")
 		ch.StreamFrom("b")
+	case "Anyt::TestChannels::MultipleStreamsChannel":
+		ch.StreamFrom("a")
+		ch.StreamFrom("b")
 	}
 	return nil
 }
@@ -171,10 +174,6 @@ func (c *TestConnection) HandleOpen() error {
 			return c.request.URL.Query().Get("reason") != "unauthorized"
 		},
 		"uid": func() bool {
-
-			// "type" => "disconnect",
-			// "reconnect" => true,
-			// "reason" => "remote"
 			uid := c.request.URL.Query().Get("uid")
 			err := c.IdentifiedBy("uid", uid)
 			if err != nil {

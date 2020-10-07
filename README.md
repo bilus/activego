@@ -20,8 +20,17 @@
 buffalo dev # reloading
 ```
 
+Runnig tests:
+
+```sh
+anyt -c "anycable-go --debug --headers cookie,x-api-token --broadcast_adapter http" \
+    --target-url="ws://localhost:8080/cable" --skip-rpc
+```
+
+Getting debug output from anycable-go:
+
 ``` shhs
-ANYCABLE_HEADERS="cookie,x-api-token" anycable-go --debug
+anycable-go --debug --headers cookie,x-api-token --broadcast_adapter http
 ```
 
 Running a specific test:
@@ -30,18 +39,18 @@ Running a specific test:
 anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --only welcome_test
 ```
 
-Running the full suite:
+> NOTE: server_restart_test will fail with anycable-go running as a separate process
+> because anyt won't be able to kill the process.
 
-``` sh
-anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc
-```
 ## TODO
 
 - [ ] Pass all anyt tests
   - [X] multiple_clients_test.rb:33
   - [X] multiple_clients_test.rb:44
   - [X] stop_test.rb:40
-  - [ ] features/remote_disconnect_test.rb:13
+  - [X] features/remote_disconnect_test.rb:13
+  - [X] server_restart_test.rb:22
+  anyt -c "anycable-go --debug --broadcast_adapter http" --target-url="ws://localhost:8080/cable" --skip-rpc --only server_restart_test
   - [ ] channel_state_test.rb
 - [ ] Contribute http broadcast adapter to anyt
 
