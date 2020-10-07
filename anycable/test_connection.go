@@ -136,7 +136,7 @@ type TestConnection struct {
 	*StatelessConnection
 }
 
-func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers *string) (Connection, error) {
+func CreateTestConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers ConnectionIdentifiers) (Connection, error) {
 	connection, err := NewStatelessConnection(c, env, socket, broadcaster, channelFactory, identifiers)
 	if err != nil {
 		return nil, err
@@ -169,6 +169,18 @@ func (c *TestConnection) HandleOpen() error {
 		},
 		"reasons": func() bool {
 			return c.request.URL.Query().Get("reason") != "unauthorized"
+		},
+		"uid": func() bool {
+
+			// "type" => "disconnect",
+			// "reconnect" => true,
+			// "reason" => "remote"
+			uid := c.request.URL.Query().Get("uid")
+			err := c.IdentifiedBy("uid", uid)
+			if err != nil {
+				log.Printf("Error calling IdentifiedBy: %v", err)
+			}
+			return uid != ""
 		},
 		"*": func() bool {
 			return true

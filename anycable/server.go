@@ -35,6 +35,20 @@ func (identifier *ChannelIdentifier) Unmarshal(bs []byte) error {
 	return nil
 }
 
+type ConnectionIdentifiers map[string]interface{}
+
+func (c ConnectionIdentifiers) ToJSON() (string, error) {
+	bs, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	return string(bs), nil
+}
+
+func (c *ConnectionIdentifiers) FromJSON(js string) error {
+	return json.Unmarshal([]byte(js), c)
+}
+
 type Channel interface {
 	HandleSubscribe() error
 	HandleUnsubscribe() error
@@ -52,7 +66,7 @@ type Connection interface {
 	HandleOpen() error
 	HandleCommand(identifier, command, data string) error
 	HandleClose(subscriptions []string) error
-	Identifiers() string
+	Identifiers() ConnectionIdentifiers
 }
 
 type ConnectionFactory func(
@@ -61,7 +75,7 @@ type ConnectionFactory func(
 	socket *Socket,
 	broadcaster *Broadcaster,
 	channelFactory ChannelFactory,
-	identifiers *string) (Connection, error)
+	identifiers ConnectionIdentifiers) (Connection, error)
 
 // Server implements AnyCable server.
 type Server struct {
@@ -104,9 +118,13 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 			Status: Status_FAILURE,
 		}
 	} else {
+		identifiersJSON, err := connection.Identifiers().ToJSON()
+		if err != nil {
+			return nil, err // TODO: Do we return err or ConnectionResponse + always nil?
+		}
 		response = ConnectionResponse{
 			Status:      Status_SUCCESS,
-			Identifiers: connection.Identifiers(),
+			Identifiers: identifiersJSON,
 			// TODO: EnvResponse
 		}
 	}
@@ -120,7 +138,11 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	fmt.Println("Cmmand")
 	spew.Dump(*m)
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory, &m.ConnectionIdentifiers)
+	identifiers := ConnectionIdentifiers{}
+	if err := identifiers.FromJSON(m.ConnectionIdentifiers); err != nil {
+		return nil, err
+	}
+	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory, identifiers)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +168,11 @@ func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*Disconnec
 	fmt.Println("Disconnect")
 	spew.Dump(*r)
 	socket := Socket{}
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, &r.Identifiers)
+	identifiers := ConnectionIdentifiers{}
+	if err := identifiers.FromJSON(r.Identifiers); err != nil {
+		return nil, err
+	}
+	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, identifiers)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +183,15 @@ func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*Disconnec
 			ErrorMsg: fmt.Sprintf("Error handling disconnect: %v", err),
 		}
 	} else {
+		// TODO: Is DisconnectResponseTransmission the best name?
+		err = s.Broadcaster.Broadcast(r.Identifiers, DisconnectResponseTransmission{
+			Type:      "disconnect",
+			Reason:    "remote",
+			Reconnect: true,
+		})
+		if err != nil {
+			log.Printf("Error broadcasting disconnect command: %v", err)
+		}
 		response = DisconnectResponse{
 			Status: Status_SUCCESS,
 		}

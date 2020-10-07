@@ -13,7 +13,7 @@ import (
 type StatelessConnection struct {
 	env         *Env
 	request     *http.Request
-	identifiers string
+	identifiers ConnectionIdentifiers
 
 	socket      *Socket
 	broadcaster *Broadcaster
@@ -21,7 +21,7 @@ type StatelessConnection struct {
 	channelFactory ChannelFactory
 }
 
-func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers *string) (*StatelessConnection, error) {
+func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers ConnectionIdentifiers) (*StatelessConnection, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
@@ -30,9 +30,8 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 	if err != nil {
 		return nil, err
 	}
-	safeIdentifiers := ""
-	if identifiers != nil {
-		safeIdentifiers = *identifiers
+	if identifiers == nil {
+		identifiers = make(ConnectionIdentifiers)
 	}
 	request := http.Request{Header: header, URL: u}
 	return &StatelessConnection{
@@ -41,7 +40,7 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 		socket:         socket,
 		broadcaster:    broadcaster,
 		channelFactory: channelFactory,
-		identifiers:    safeIdentifiers,
+		identifiers:    identifiers,
 	}, nil
 }
 
@@ -104,6 +103,11 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 	}
 }
 
-func (c *StatelessConnection) Identifiers() string {
+func (c *StatelessConnection) Identifiers() ConnectionIdentifiers {
 	return c.identifiers
+}
+
+func (c *StatelessConnection) IdentifiedBy(key string, value interface{}) error {
+	c.identifiers[key] = value
+	return nil
 }
