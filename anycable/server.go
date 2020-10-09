@@ -60,13 +60,19 @@ type Channel interface {
 }
 
 // TODO: Pass ChannelIdentifier.
-type ChannelFactory func(identifierJSON string, socket *Socket, broadcaster *Broadcaster) (Channel, error)
+type ChannelFactory func(
+	identifierJSON string,
+	socket *Socket,
+	broadcaster *Broadcaster) (Channel, error)
 
 type Connection interface {
 	HandleOpen() error
 	HandleCommand(identifier, command, data string) error
 	HandleClose(subscriptions []string) error
 	Identifiers() ConnectionIdentifiers
+	State() State
+	SaveToConnectionResponse(r *ConnectionResponse) error
+	SaveToCommandResponse(r *CommandResponse) error
 }
 
 type ConnectionFactory func(
@@ -106,9 +112,12 @@ func (s *Server) Serve(port int) error {
 func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
 	fmt.Println("Connect")
 	spew.Dump(*r)
-	socket := Socket{}
+	socket, err := NewSocket(r.Env)
+	if err != nil {
+		return nil, err
+	}
 	// TODO: Just pass new channel, not factory?
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, nil)
+	connection, err := s.ConnectionFactory(c, r.Env, socket, s.Broadcaster, s.ChannelFactory, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +137,9 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 			// TODO: EnvResponse
 		}
 	}
-	socket.SaveToConnectionResponse(&response)
+	if err := connection.SaveToConnectionResponse(&response); err != nil {
+		return nil, err
+	}
 	fmt.Println("Response")
 	spew.Dump(response)
 	return &response, nil
@@ -137,12 +148,16 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
 	fmt.Println("Cmmand")
 	spew.Dump(*m)
-	socket := Socket{}
+	socket, err := NewSocketForChannel(m.Env, m.Identifier)
+	if err != nil {
+		return nil, err
+	}
+
 	identifiers := ConnectionIdentifiers{}
 	if err := identifiers.FromJSON(m.ConnectionIdentifiers); err != nil {
 		return nil, err
 	}
-	connection, err := s.ConnectionFactory(c, m.Env, &socket, s.Broadcaster, s.ChannelFactory, identifiers)
+	connection, err := s.ConnectionFactory(c, m.Env, socket, s.Broadcaster, s.ChannelFactory, identifiers)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +173,9 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 			Status: Status_SUCCESS,
 		}
 	}
-	socket.SaveToCommandResponse(&response)
+	if err := connection.SaveToCommandResponse(&response); err != nil {
+		return nil, err
+	}
 	fmt.Println("Response")
 	spew.Dump(response)
 	return &response, nil
@@ -167,12 +184,15 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*DisconnectResponse, error) {
 	fmt.Println("Disconnect")
 	spew.Dump(*r)
-	socket := Socket{}
+	socket, err := NewSocket(r.Env)
+	if err != nil {
+		return nil, err
+	}
 	identifiers := ConnectionIdentifiers{}
 	if err := identifiers.FromJSON(r.Identifiers); err != nil {
 		return nil, err
 	}
-	connection, err := s.ConnectionFactory(c, r.Env, &socket, s.Broadcaster, s.ChannelFactory, identifiers)
+	connection, err := s.ConnectionFactory(c, r.Env, socket, s.Broadcaster, s.ChannelFactory, identifiers)
 	if err != nil {
 		return nil, err
 	}

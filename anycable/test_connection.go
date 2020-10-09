@@ -51,6 +51,12 @@ func (ch *TestChannel) HandleSubscribe() error {
 	case "Anyt::TestChannels::MultipleStreamsChannel":
 		ch.StreamFrom("a")
 		ch.StreamFrom("b")
+	case "Anyt::TestChannels::ChannelStateChannel":
+		ch.StreamFrom("state_counts")
+		// TODO: Wrap it in a DSL.
+		state := ch.socket.GetIState()
+		state.Set("count", 1)
+		state.Set("user", map[string]interface{}{"name": ch.Identifier().Params["name"]})
 	}
 	return nil
 }
@@ -103,10 +109,21 @@ func (ch *TestChannel) StopStreamFrom(broadcasting string) error {
 }
 
 func (ch *TestChannel) Tick(CommandData) error {
-	return ch.socket.Write(MessageResponseTransmission{
-		Message:    "tock",
-		Identifier: ch.IdentifierJSON(),
-	})
+	switch ch.Identifier().Channel {
+	case "Anyt::TestChannels::ChannelStateChannel":
+		state := ch.socket.GetIState()
+		state.UpdateFloat64("count", func(v float64) float64 { return v + 2 })
+		user := state.Get("user").(map[string]interface{})
+		return ch.socket.Write(MessageResponseTransmission{
+			Message:    map[string]interface{}{"count": state.Get("count"), "name": user["name"]},
+			Identifier: ch.IdentifierJSON(),
+		})
+	default:
+		return ch.socket.Write(MessageResponseTransmission{
+			Message:    "tock",
+			Identifier: ch.IdentifierJSON(),
+		})
+	}
 }
 
 func (ch *TestChannel) Unfollow(data CommandData) error {

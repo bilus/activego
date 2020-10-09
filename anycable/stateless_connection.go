@@ -14,6 +14,7 @@ type StatelessConnection struct {
 	env         *Env
 	request     *http.Request
 	identifiers ConnectionIdentifiers
+	cstate      State
 
 	socket      *Socket
 	broadcaster *Broadcaster
@@ -41,6 +42,7 @@ func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadca
 		broadcaster:    broadcaster,
 		channelFactory: channelFactory,
 		identifiers:    identifiers,
+		cstate:         socket.GetCState(),
 	}, nil
 }
 
@@ -53,6 +55,7 @@ func (c *StatelessConnection) HandleOpen() error {
 
 func (c *StatelessConnection) HandleClose(subscriptions []string) error {
 	for _, identifier := range subscriptions {
+		// TODO: Pass istate properly.
 		channel, err := c.channelFactory(identifier, c.socket, c.broadcaster)
 		if err != nil {
 			log.Errorf("Error creating channel %q: %v", identifier, err)
@@ -111,4 +114,16 @@ func (c *StatelessConnection) Identifiers() ConnectionIdentifiers {
 func (c *StatelessConnection) IdentifiedBy(key string, value interface{}) error {
 	c.identifiers[key] = value
 	return nil
+}
+
+func (c *StatelessConnection) SaveToConnectionResponse(r *ConnectionResponse) error {
+	return c.socket.SaveToConnectionResponse(r)
+}
+
+func (c *StatelessConnection) SaveToCommandResponse(r *CommandResponse) error {
+	return c.socket.SaveToCommandResponse(r)
+}
+
+func (c *StatelessConnection) State() State {
+	return c.cstate
 }
