@@ -10,6 +10,7 @@ type State interface {
 	UpdateString(k string, f func(string) string) error
 	UpdateFloat64(k string, f func(float64) float64) error
 	Changes() (map[string]string, error)
+	Select(k string)
 }
 
 type Socket struct {
@@ -22,12 +23,18 @@ type Socket struct {
 	identifier         *string
 }
 
-func NewSocket(env *Env) (*Socket, error) {
-	cstate, err := NewSimpleState(env.Cstate)
+func NewSocket(env *Env, disconnect bool) (*Socket, error) {
+	var err error
+	cstate, err := DecodeSimpleState(env.Cstate)
 	if err != nil {
 		return nil, err
 	}
-	istate, err := NewSimpleState(env.Istate)
+	var istate State
+	if disconnect {
+		istate, err = DecodeNestedState(env.Istate)
+	} else {
+		istate, err = DecodeSimpleState(env.Istate)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -35,15 +42,6 @@ func NewSocket(env *Env) (*Socket, error) {
 		cstate: cstate,
 		istate: istate,
 	}, nil
-}
-
-func NewSocketForChannel(env *Env, identifier string) (*Socket, error) {
-	socket, err := NewSocket(env)
-	if err != nil {
-		return nil, err
-	}
-	socket.identifier = &identifier
-	return socket, nil
 }
 
 func (s *Socket) Write(t interface{}) error {

@@ -69,6 +69,16 @@ func (ch *TestChannel) HandleUnsubscribe() error {
 		ch.broadcaster.Broadcast("request_b", map[string]string{"data": "user left"})
 	case "Anyt::TestChannels::RequestCChannel":
 		ch.broadcaster.Broadcast("request_c", map[string]string{"data": fmt.Sprintf("user left%v", ch.Identifier().Params["id"])})
+	case "Anyt::TestChannels::ChannelStateChannel":
+		if ch.identifier.Params["notify_disconnect"] == nil {
+			return nil
+		}
+		user := ch.socket.GetIState().Get("user")
+		if user == nil {
+			return fmt.Errorf("no 'user' in istate")
+		}
+		name := user.(map[string]interface{})["name"]
+		ch.broadcaster.Broadcast("state_counts", map[string]string{"data": fmt.Sprintf("user left: %v", name)})
 	}
 	return nil
 }

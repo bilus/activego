@@ -112,7 +112,7 @@ func (s *Server) Serve(port int) error {
 func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
 	fmt.Println("Connect")
 	spew.Dump(*r)
-	socket, err := NewSocket(r.Env)
+	socket, err := NewSocket(r.Env, false)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
 	fmt.Println("Cmmand")
 	spew.Dump(*m)
-	socket, err := NewSocketForChannel(m.Env, m.Identifier)
+	socket, err := NewSocket(m.Env, false)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*DisconnectResponse, error) {
 	fmt.Println("Disconnect")
 	spew.Dump(*r)
-	socket, err := NewSocket(r.Env)
+	socket, err := NewSocket(r.Env, true)
 	if err != nil {
 		return nil, err
 	}

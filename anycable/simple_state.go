@@ -10,30 +10,28 @@ type simpleState struct {
 	changedFields map[string]struct{}
 }
 
-func NewSimpleState(src map[string]string) (*simpleState, error) {
-	state := simpleState{
-		m:             make(map[string]interface{}),
+func NewSimpleState(src map[string]interface{}) *simpleState {
+	return &simpleState{
+		m:             src,
 		changedFields: make(map[string]struct{}),
 	}
+}
+
+func DecodeSimpleState(src map[string]string) (*simpleState, error) {
+	// fmt.Println("DecodeSimpleState")
+	state := NewSimpleState(make(map[string]interface{}))
 	for k, js := range src {
+		// fmt.Println("istate at", k)
+		// spew.Dump(js)
 		var v interface{}
 		if err := json.Unmarshal([]byte(js), &v); err != nil {
 			return nil, err
 		}
+		// fmt.Println("Unmarshaled")
+		// spew.Dump(v)
 		state.m[k] = v
 	}
-	return &state, nil
-}
-
-func (state simpleState) Encode(dst map[string]string) error {
-	for k, v := range state.m {
-		bs, err := json.Marshal(v)
-		if err != nil {
-			return err
-		}
-		dst[k] = string(bs)
-	}
-	return nil
+	return state, nil
 }
 
 func (state simpleState) Get(k string) interface{} {
@@ -84,4 +82,15 @@ func (state simpleState) Changes() (map[string]string, error) {
 		result[k] = string(bs)
 	}
 	return result, nil
+}
+
+func (state simpleState) RawChanges() (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	for k := range state.changedFields {
+		result[k] = state.m[k]
+	}
+	return result, nil
+}
+
+func (state *simpleState) Select(k string) {
 }
