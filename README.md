@@ -44,14 +44,16 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
 
 ## TODO
 
-- [ ] Pass all anyt tests
+- [X] Pass all anyt tests
   - [X] multiple_clients_test.rb:33
   - [X] multiple_clients_test.rb:44
   - [X] stop_test.rb:40
   - [X] features/remote_disconnect_test.rb:13
   - [X] server_restart_test.rb:22
   anyt -c "anycable-go --debug --broadcast_adapter http" --target-url="ws://localhost:8080/cable" --skip-rpc --only server_restart_test
-  - [ ] channel_state_test.rb
+  - [X] channel_state_test.rb
+- [ ] Hello, world JS
+- [ ] Chat
 - [ ] Contribute http broadcast adapter to anyt
 
     ``` ruby

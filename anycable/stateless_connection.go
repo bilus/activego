@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	reflect "reflect"
 
 	"github.com/apex/log"
+	"github.com/iancoleman/strcase"
 )
 
 type StatelessConnection struct {
@@ -96,7 +98,7 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 			if !ok {
 				return fmt.Errorf("expecting action to be a string, got: %q", actionI)
 			}
-			if err = channel.HandleAction(action, parsedData); err != nil {
+			if err = handleAction(channel, action, parsedData); err != nil {
 				return fmt.Errorf("error handling action %q: %v", action, err)
 			}
 		}
@@ -104,6 +106,31 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 	default:
 		return fmt.Errorf("unsupported command %q", command)
 	}
+}
+
+func handleAction(channel Channel, action string, data CommandData) error {
+	ok, err := callChannelMethod(channel, action, data)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return channel.HandleAction(action, data)
+	}
+	return nil
+}
+
+func callChannelMethod(channel Channel, action string, data CommandData) (bool, error) {
+	methodName := strcase.ToCamel(action)
+	method := reflect.ValueOf(channel).MethodByName(methodName)
+	if !method.IsValid() {
+		return false, nil
+	}
+	result := method.Call([]reflect.Value{reflect.ValueOf(data)})
+	err := result[0].Interface()
+	if err == nil {
+		return true, nil
+	}
+	return true, err.(error)
 }
 
 func (c *StatelessConnection) Identifiers() ConnectionIdentifiers {

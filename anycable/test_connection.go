@@ -4,17 +4,13 @@ import (
 	context "context"
 	"fmt"
 	"log"
-	reflect "reflect"
 	"regexp"
-
-	"github.com/iancoleman/strcase"
 )
 
 type TestChannel struct {
-	socket         *Socket
-	broadcaster    *Broadcaster
-	identifierJSON string // TODO: Marshal identifier.
-	identifier     ChannelIdentifier
+	Channel
+	broadcaster *Broadcaster
+	socket      *Socket
 }
 
 func (ch *TestChannel) HandleSubscribe() error {
@@ -22,16 +18,16 @@ func (ch *TestChannel) HandleSubscribe() error {
 	case "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel":
 		ch.socket.Write(CommandResponseTransmission{
 			Type:       "reject_subscription",
-			Identifier: ch.identifierJSON,
+			Identifier: ch.IdentifierJSON(),
 		})
 	case "Anyt::TestChannels::SubscriptionTransmissionsChannel":
 		ch.socket.Write(MessageResponseTransmission{
 			Message:    "hello",
-			Identifier: ch.identifierJSON,
+			Identifier: ch.IdentifierJSON(),
 		})
 		ch.socket.Write(MessageResponseTransmission{
 			Message:    "world",
-			Identifier: ch.identifierJSON,
+			Identifier: ch.IdentifierJSON(),
 		})
 	case "Anyt::TestChannels::RequestAChannel":
 		ch.socket.Subscribe("request_a")
@@ -58,7 +54,7 @@ func (ch *TestChannel) HandleSubscribe() error {
 		state.Set("count", 1)
 		state.Set("user", map[string]interface{}{"name": ch.Identifier().Params["name"]})
 	}
-	return nil
+	return ch.Channel.HandleUnsubscribe()
 }
 
 func (ch *TestChannel) HandleUnsubscribe() error {
@@ -70,7 +66,7 @@ func (ch *TestChannel) HandleUnsubscribe() error {
 	case "Anyt::TestChannels::RequestCChannel":
 		ch.broadcaster.Broadcast("request_c", map[string]string{"data": fmt.Sprintf("user left%v", ch.Identifier().Params["id"])})
 	case "Anyt::TestChannels::ChannelStateChannel":
-		if ch.identifier.Params["notify_disconnect"] == nil {
+		if ch.Identifier().Params["notify_disconnect"] == nil {
 			return nil
 		}
 		user := ch.socket.GetIState().Get("user")
@@ -80,42 +76,7 @@ func (ch *TestChannel) HandleUnsubscribe() error {
 		name := user.(map[string]interface{})["name"]
 		ch.broadcaster.Broadcast("state_counts", map[string]string{"data": fmt.Sprintf("user left: %v", name)})
 	}
-	return nil
-}
-
-// TODO: ReflectChannel
-func (ch *TestChannel) HandleAction(action string, data CommandData) error {
-	// TODO: Handle missing method.
-	// TODO: Change snake case to camel case.
-	methodName := strcase.ToCamel(action)
-	method := reflect.ValueOf(ch).MethodByName(methodName)
-	if !method.IsValid() {
-		return fmt.Errorf("no such method TestChannel#%v", methodName)
-	}
-	result := method.Call([]reflect.Value{reflect.ValueOf(data)})
-	err := result[0].Interface()
-	if err == nil {
-		return nil
-	}
-	return err.(error)
-}
-
-func (ch *TestChannel) IdentifierJSON() string {
-	return ch.identifierJSON
-}
-
-func (ch *TestChannel) Identifier() ChannelIdentifier {
-	return ch.identifier
-}
-
-func (ch *TestChannel) StreamFrom(broadcasting string) error {
-	ch.socket.Subscribe(broadcasting)
-	return nil
-}
-
-func (ch *TestChannel) StopStreamFrom(broadcasting string) error {
-	ch.socket.Unsubscribe(broadcasting)
-	return nil
+	return ch.Channel.HandleSubscribe()
 }
 
 func (ch *TestChannel) Tick(CommandData) error {
@@ -150,15 +111,14 @@ func (ch *TestChannel) Echo(data CommandData) error {
 }
 
 func CreateTestChannel(identifierJSON string, socket *Socket, broadcaster *Broadcaster) (Channel, error) {
-	identifier := ChannelIdentifier{}
-	if err := identifier.Unmarshal([]byte(identifierJSON)); err != nil {
+	channel, err := NewStatelessChannel(identifierJSON, socket, broadcaster)
+	if err != nil {
 		return nil, err
 	}
 	return &TestChannel{
-		identifierJSON: identifierJSON,
-		identifier:     identifier,
-		socket:         socket,
-		broadcaster:    broadcaster,
+		Channel:     channel,
+		socket:      socket,
+		broadcaster: broadcaster,
 	}, nil
 }
 

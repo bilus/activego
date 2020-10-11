@@ -54,6 +54,7 @@ type Channel interface {
 	HandleUnsubscribe() error
 	HandleAction(action string, data CommandData) error
 	IdentifierJSON() string
+	// TODO: Params() and Channel() string
 	Identifier() ChannelIdentifier
 	StreamFrom(broadcasting string) error
 	StopStreamFrom(broadcasting string) error
@@ -70,6 +71,7 @@ type Connection interface {
 	HandleCommand(identifier, command, data string) error
 	HandleClose(subscriptions []string) error
 	Identifiers() ConnectionIdentifiers
+	IdentifiedBy(key string, value interface{}) error
 	State() State
 	SaveToConnectionResponse(r *ConnectionResponse) error
 	SaveToCommandResponse(r *CommandResponse) error
