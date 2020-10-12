@@ -52,8 +52,9 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
   - [X] server_restart_test.rb:22
   anyt -c "anycable-go --debug --broadcast_adapter http" --target-url="ws://localhost:8080/cable" --skip-rpc --only server_restart_test
   - [X] channel_state_test.rb
-- [ ] Hello, world JS
-- [ ] Chat
+- [X] Simple chat
+- [ ] BUG: different identifiers for connect and for subscribe
+  - [ ] Compare with Rails
 - [ ] Contribute http broadcast adapter to anyt
 
     ``` ruby

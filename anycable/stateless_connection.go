@@ -153,3 +153,10 @@ func (c *StatelessConnection) SaveToCommandResponse(r *CommandResponse) error {
 func (c *StatelessConnection) State() State {
 	return c.socket.GetCState()
 }
+
+func (c *StatelessConnection) URL() *url.URL {
+	return c.request.URL
+}
+func (c *StatelessConnection) Header() http.Header {
+	return c.request.Header
+}

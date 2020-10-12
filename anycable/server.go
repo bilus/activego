@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
 
 	"github.com/davecgh/go-spew/spew"
 	grpc "google.golang.org/grpc"
@@ -73,6 +75,8 @@ type Connection interface {
 	Identifiers() ConnectionIdentifiers
 	IdentifiedBy(key string, value interface{}) error
 	State() State
+	URL() *url.URL
+	Header() http.Header
 	SaveToConnectionResponse(r *ConnectionResponse) error
 	SaveToCommandResponse(r *CommandResponse) error
 }
