@@ -53,8 +53,8 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
   anyt -c "anycable-go --debug --broadcast_adapter http" --target-url="ws://localhost:8080/cable" --skip-rpc --only server_restart_test
   - [X] channel_state_test.rb
 - [X] Simple chat
-- [ ] BUG: different identifiers for connect and for subscribe
-  - [ ] Compare with Rails
+- [ ] Address all TODOs
+- [ ] Simplified DSL for chat
 - [ ] Contribute http broadcast adapter to anyt
 
     ``` ruby
@@ -62,9 +62,4 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
     AnyCable.config.http_broadcast_url = 'http://localhost:8090/_broadcast'
     ```
 
-- [ ] Implement ChannelDispatcher (factory + handling actions)
-      Factory can now just use TestChannel.
-- [ ] Address all TODOs
-- [ ] Write an example app using Golang DSL (to design the DSL)
-- [ ] Create Channel using reflection (aka implement the DSL)
 - [ ] Redis broadcast adapter
