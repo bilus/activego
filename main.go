@@ -21,9 +21,12 @@ func main() {
 	wg.Add(1)
 	go func() {
 		log.Println("Starting AnyCable backend listening on 50051")
+		// TODO: Pass adapter instead of broadcaster, keep the latter internal..
 		broadcaster := anycable.NewBroadcaster(adapters.NewHTTPBroadcastAdapter("http://localhost:8090/_broadcast")) // TODO: Make configurable.
-		// if err := anycable.NewServer(anycable.CreateTestConnection, anycable.CreateTestChannel, broadcaster).Serve(50051); err != nil {
-		if err := anycable.NewServer(chat.NewConnection, chat.NewChannel, broadcaster).Serve(50051); err != nil {
+		server := anycable.BuildServer(broadcaster).Connected(chat.Connected)
+		chatCh := server.Channel("ChatChannel")
+		chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
+		if err := server.Serve(50051); err != nil {
 			log.Fatal(err)
 		}
 

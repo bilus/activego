@@ -57,7 +57,7 @@ func (c *StatelessConnection) HandleClose(subscriptions []string) error {
 	for _, identifier := range subscriptions {
 		// TODO: Pass istate properly.
 		c.socket.GetIState().Select(identifier)
-		channel, err := c.channelFactory(identifier, c.socket, c.broadcaster)
+		channel, err := c.channelFactory(c, identifier, c.socket, c.broadcaster)
 		if err != nil {
 			log.Errorf("Error creating channel %q: %v", identifier, err)
 			continue
@@ -70,7 +70,7 @@ func (c *StatelessConnection) HandleClose(subscriptions []string) error {
 }
 
 func (c *StatelessConnection) HandleCommand(identifier, command, data string) error {
-	channel, err := c.channelFactory(identifier, c.socket, c.broadcaster)
+	channel, err := c.channelFactory(c, identifier, c.socket, c.broadcaster)
 	if err != nil {
 		return fmt.Errorf("error creating channel: %v", err)
 	}
@@ -88,7 +88,7 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 	case "unsubscribe":
 		return channel.HandleUnsubscribe()
 	case "message":
-		parsedData := CommandData{}
+		parsedData := ActionData{}
 		if err = json.Unmarshal([]byte(data), &parsedData); err != nil {
 			return fmt.Errorf("error parsing data %v: %v", data, err)
 		}
@@ -108,18 +108,18 @@ func (c *StatelessConnection) HandleCommand(identifier, command, data string) er
 	}
 }
 
-func handleAction(channel Channel, action string, data CommandData) error {
-	ok, err := callChannelMethod(channel, action, data)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return channel.HandleAction(action, data)
-	}
-	return nil
+func handleAction(channel Channel, action string, data ActionData) error {
+	// ok, err := callChannelMethod(channel, action, data)
+	// if err != nil {
+	// 	return err
+	// }
+	// if !ok {
+	return channel.HandleAction(action, data)
+	// }
+	// return nil
 }
 
-func callChannelMethod(channel Channel, action string, data CommandData) (bool, error) {
+func callChannelMethod(channel Channel, action string, data ActionData) (bool, error) {
 	methodName := strcase.ToCamel(action)
 	method := reflect.ValueOf(channel).MethodByName(methodName)
 	if !method.IsValid() {

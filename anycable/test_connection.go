@@ -79,7 +79,7 @@ func (ch *TestChannel) HandleUnsubscribe() error {
 	return ch.Channel.HandleSubscribe()
 }
 
-func (ch *TestChannel) Tick(CommandData) error {
+func (ch *TestChannel) Tick(ActionData) error {
 	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::ChannelStateChannel":
 		state := ch.socket.GetIState()
@@ -97,11 +97,11 @@ func (ch *TestChannel) Tick(CommandData) error {
 	}
 }
 
-func (ch *TestChannel) Unfollow(data CommandData) error {
+func (ch *TestChannel) Unfollow(data ActionData) error {
 	return ch.StopStreamFrom(data["name"].(string))
 }
 
-func (ch *TestChannel) Echo(data CommandData) error {
+func (ch *TestChannel) Echo(data ActionData) error {
 	return ch.socket.Write(MessageResponseTransmission{
 		Message: map[string]interface{}{
 			"response": data["text"],

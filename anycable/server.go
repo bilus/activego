@@ -13,7 +13,7 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
-type CommandData map[string]interface{}
+type ActionData map[string]interface{}
 
 type ChannelIdentifier struct {
 	Channel string `json:"channel"`
@@ -54,16 +54,18 @@ func (c *ConnectionIdentifiers) FromJSON(js string) error {
 type Channel interface {
 	HandleSubscribe() error
 	HandleUnsubscribe() error
-	HandleAction(action string, data CommandData) error
+	HandleAction(action string, data ActionData) error
 	IdentifierJSON() string
 	// TODO: Params() and Channel() string
 	Identifier() ChannelIdentifier
 	StreamFrom(broadcasting string) error
 	StopStreamFrom(broadcasting string) error
+	Broadcast(stream string, data interface{}) error
 }
 
 // TODO: Pass ChannelIdentifier.
 type ChannelFactory func(
+	connection Connection,
 	identifierJSON string,
 	socket *Socket,
 	broadcaster *Broadcaster) (Channel, error)
@@ -143,6 +145,7 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 			// TODO: EnvResponse
 		}
 	}
+	fmt.Println("Connection in Server#Connect", connection)
 	if err := connection.SaveToConnectionResponse(&response); err != nil {
 		return nil, err
 	}

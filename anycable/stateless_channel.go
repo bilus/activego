@@ -29,7 +29,7 @@ func (ch *statelessChannel) HandleUnsubscribe() error {
 	return nil
 }
 
-func (ch *statelessChannel) HandleAction(action string, data CommandData) error {
+func (ch *statelessChannel) HandleAction(action string, data ActionData) error {
 	return nil
 }
 
@@ -49,4 +49,8 @@ func (ch *statelessChannel) StreamFrom(broadcasting string) error {
 func (ch *statelessChannel) StopStreamFrom(broadcasting string) error {
 	ch.socket.Unsubscribe(broadcasting)
 	return nil
+}
+
+func (ch *statelessChannel) Broadcast(stream string, data interface{}) error {
+	return ch.broadcaster.Broadcast(stream, data)
 }

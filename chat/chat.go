@@ -1,48 +1,45 @@
 package chat
 
 import (
-	"context"
+	"fmt"
 	"stimulus/anycable"
 )
 
-type Connection struct {
-	anycable.Connection
+// import (
+// 	"stimulus/anycable"
+// )
+
+// type Connection struct {
+// 	anycable.Connection
+// }
+
+// func (c *Connection) HandleOpen() error {
+// 	return c.IdentifiedBy("user", c.URL().Query().Get("user"))
+// }
+
+// type Channel struct {
+// 	anycable.Channel
+// }
+
+// // TODO: Support Clone, Before, After.
+
+// func (ch *Channel) HandleSubscribe() error {
+// 	return ch.StreamFrom("chat")
+// }
+
+// func (ch *Channel) Message(data anycable.ActionData) error {
+// 	return ch.Broadcast("chat", data["text"])
+// }
+func Connected(c anycable.Connection) error {
+	return c.IdentifiedBy("user", c.URL().Query().Get("user"))
 }
 
-func NewConnection(c context.Context, env *anycable.Env, socket *anycable.Socket, broadcaster *anycable.Broadcaster, channelFactory anycable.ChannelFactory, identifiers anycable.ConnectionIdentifiers) (anycable.Connection, error) {
-	conn, err := anycable.NewStatelessConnection(c, env, socket, broadcaster, channelFactory, identifiers)
-	return &Connection{
-		Connection: conn,
-	}, err
+func Subscribed(c anycable.Connection, ch anycable.Channel) error {
+	fmt.Println("Connection in chat.Subscribed", c)
+
+	return ch.StreamFrom("chat")
 }
 
-func (c *Connection) HandleOpen() error {
-	err := c.IdentifiedBy("user", c.URL().Query().Get("user"))
-	if err != nil {
-		return err
-	}
-	return c.Connection.HandleOpen()
-}
-
-func NewChannel(identifierJSON string, socket *anycable.Socket, broadcaster *anycable.Broadcaster) (anycable.Channel, error) {
-	ch, err := anycable.NewStatelessChannel(identifierJSON, socket, broadcaster)
-	return &Channel{
-		Channel:     ch,
-		Broadcaster: broadcaster,
-	}, err
-}
-
-type Channel struct {
-	anycable.Channel
-	*anycable.Broadcaster
-}
-
-func (ch *Channel) HandleSubscribe() error {
-	ch.StreamFrom("chat")
-
-	return ch.Channel.HandleSubscribe()
-}
-
-func (ch *Channel) Message(data anycable.CommandData) error {
+func Message(c anycable.Connection, ch anycable.Channel, data anycable.ActionData) error {
 	return ch.Broadcast("chat", data["text"])
 }
