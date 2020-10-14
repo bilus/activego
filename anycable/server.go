@@ -145,7 +145,6 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 			// TODO: EnvResponse
 		}
 	}
-	fmt.Println("Connection in Server#Connect", connection)
 	if err := connection.SaveToConnectionResponse(&response); err != nil {
 		return nil, err
 	}

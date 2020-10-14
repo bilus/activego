@@ -18,17 +18,12 @@ func NewSimpleState(src map[string]interface{}) *simpleState {
 }
 
 func DecodeSimpleState(src map[string]string) (*simpleState, error) {
-	// fmt.Println("DecodeSimpleState")
 	state := NewSimpleState(make(map[string]interface{}))
 	for k, js := range src {
-		// fmt.Println("istate at", k)
-		// spew.Dump(js)
 		var v interface{}
 		if err := json.Unmarshal([]byte(js), &v); err != nil {
 			return nil, err
 		}
-		// fmt.Println("Unmarshaled")
-		// spew.Dump(v)
 		state.m[k] = v
 	}
 	return state, nil

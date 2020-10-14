@@ -14,14 +14,10 @@ func DecodeNestedState(src map[string]string) (*nestedState, error) {
 		m: make(map[string]*simpleState),
 	}
 	for k, js := range src {
-		// fmt.Println("istate at", k)
-		// spew.Dump(js)
 		var m map[string]string
 		if err := json.Unmarshal([]byte(js), &m); err != nil {
 			return nil, err
 		}
-		// fmt.Println("Unmarshaled")
-		// spew.Dump(m)
 		var err error
 		state.m[k], err = DecodeSimpleState(m)
 		if err != nil {
