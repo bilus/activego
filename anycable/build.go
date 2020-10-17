@@ -3,6 +3,7 @@ package anycable
 import (
 	context "context"
 	"fmt"
+	"stimulus/anycable/adapters"
 )
 
 type ConnectedHandler func(Connection) error
@@ -129,6 +130,12 @@ func (b *ServerBuilder) Connected(f ConnectedHandler) *ServerBuilder {
 func (b *ServerBuilder) Disconnected(f DisconnectedHandler) *ServerBuilder {
 	b.connectionController.disconnected = f
 	return b
+}
+
+func (b *ServerBuilder) MakeEmbedded() EmbeddedAnycable {
+	a := StartEmbedded(b.Server)
+	b.Server.SetBroadcaster(NewBroadcaster(adapters.NewEmbeddedBroadcastAdapter(a)))
+	return a
 }
 
 type ChannelBuilder struct {

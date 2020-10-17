@@ -1,12 +1,15 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/envy"
 	forcessl "github.com/gobuffalo/mw-forcessl"
 	paramlogger "github.com/gobuffalo/mw-paramlogger"
 	"github.com/unrolled/secure"
 
+	"stimulus/anycable"
 	"stimulus/models"
 
 	"github.com/gobuffalo/buffalo-pop/v2/pop/popmw"
@@ -34,12 +37,19 @@ var T *i18n.Translator
 // `ServeFiles` is a CATCH-ALL route, so it should always be
 // placed last in the route declarations, as it will prevent routes
 // declared after it to never be called.
-func App() *buffalo.App {
+func App(embeddedAnycable *anycable.EmbeddedAnycable) *buffalo.App {
 	if app == nil {
 		app = buffalo.New(buffalo.Options{
 			Env:         ENV,
 			SessionName: "_stimulus_session",
 		})
+
+		if embeddedAnycable != nil {
+			fmt.Println("Mounting /cable")
+			// app.Mount("/cable", embeddedAnycable)
+			app.ANY("/cable", buffalo.WrapHandler(*embeddedAnycable))
+
+		}
 
 		// Automatically redirect to SSL
 		app.Use(forceSSL())
@@ -62,6 +72,7 @@ func App() *buffalo.App {
 		app.GET("/", HomeHandler)
 
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
+
 	}
 
 	return app

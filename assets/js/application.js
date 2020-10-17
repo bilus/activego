@@ -5,7 +5,7 @@ ActionCable = require("actioncable");
 
 $(() => {
     this.App || (this.App = {});
-    // this.App.cable = ActionCable.createConsumer("ws://localhost:8080/cable");
+    // this.App.cable = ActionCable.createConsumer("ws://localhost:3000/cable");
     this.App.cable = ActionCable.createConsumer(getWebSocketURL());
 
     var chat = this.App.cable.subscriptions.create('ChatChannel', {
@@ -33,5 +33,5 @@ $(() => {
 function getWebSocketURL() {
     var params = new URLSearchParams(window.location.search)
     var user = params.get('user')
-    return `ws://localhost:8080/cable?user=${user}`
+    return `ws://localhost:3000/cable?user=${user}`
 }

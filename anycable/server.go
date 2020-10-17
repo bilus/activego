@@ -107,6 +107,10 @@ func NewServer(connectionFactory ConnectionFactory, channelFactory ChannelFactor
 	}
 }
 
+func (s *Server) SetBroadcaster(broadcaster *Broadcaster) {
+	s.Broadcaster = broadcaster
+}
+
 func (s *Server) Serve(port int) error {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {

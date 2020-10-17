@@ -19,22 +19,25 @@ import (
 func main() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go func() {
-		log.Println("Starting AnyCable backend listening on 50051")
-		// TODO: Pass adapter instead of broadcaster, keep the latter internal..
-		broadcaster := anycable.NewBroadcaster(adapters.NewHTTPBroadcastAdapter("http://localhost:8090/_broadcast")) // TODO: Make configurable.
-		server := anycable.BuildServer(broadcaster).Connected(chat.Connected)
-		chatCh := server.Channel("ChatChannel")
-		chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
-		if err := server.Serve(50051); err != nil {
-			log.Fatal(err)
-		}
+	// go func() {
+	// log.Println("Starting AnyCable backend listening on 50051")
+	// TODO: Pass adapter instead of broadcaster, keep the latter internal..
+	broadcaster := anycable.NewBroadcaster(adapters.NewHTTPBroadcastAdapter("http://localhost:8090/_broadcast")) // TODO: Make configurable.
+	server := anycable.BuildServer(broadcaster).Connected(chat.Connected)
+	chatCh := server.Channel("ChatChannel")
+	chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
 
-	}()
+	embeddedAnycable := server.MakeEmbedded()
+
+	// if err := server.Serve(50051); err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// }()
 
 	wg.Add(1)
 	go func() {
-		app := actions.App()
+		app := actions.App(&embeddedAnycable)
 		if err := app.Serve(); err != nil {
 			log.Fatal(err)
 		}
