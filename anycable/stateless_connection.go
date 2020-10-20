@@ -157,6 +157,15 @@ func (c *StatelessConnection) State() State {
 func (c *StatelessConnection) URL() *url.URL {
 	return c.request.URL
 }
+
 func (c *StatelessConnection) Header() http.Header {
 	return c.request.Header
+}
+
+func (c *StatelessConnection) Cookie(name string) (*http.Cookie, error) {
+	return c.request.Cookie(name)
+}
+
+func (c *StatelessConnection) Transmit(data interface{}) error {
+	return c.socket.Write(data)
 }

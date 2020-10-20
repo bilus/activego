@@ -54,3 +54,18 @@ func (ch *statelessChannel) StopStreamFrom(broadcasting string) error {
 func (ch *statelessChannel) Broadcast(stream string, data interface{}) error {
 	return ch.broadcaster.Broadcast(stream, data)
 }
+
+func (ch *statelessChannel) State() State {
+	return ch.socket.GetIState()
+}
+
+func (ch *statelessChannel) Reject() error {
+	return ch.socket.Write(CommandResponseTransmission{
+		Type:       "reject_subscription",
+		Identifier: ch.IdentifierJSON(),
+	})
+}
+
+func (ch *statelessChannel) Param(k string) interface{} {
+	return ch.identifier.Params[k]
+}

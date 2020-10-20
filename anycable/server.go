@@ -61,6 +61,9 @@ type Channel interface {
 	StreamFrom(broadcasting string) error
 	StopStreamFrom(broadcasting string) error
 	Broadcast(stream string, data interface{}) error
+	State() State
+	Param(k string) interface{}
+	Reject() error
 }
 
 // TODO: Pass ChannelIdentifier.
@@ -79,8 +82,10 @@ type Connection interface {
 	State() State
 	URL() *url.URL
 	Header() http.Header
+	Cookie(name string) (*http.Cookie, error)
 	SaveToConnectionResponse(r *ConnectionResponse) error
 	SaveToCommandResponse(r *CommandResponse) error
+	Transmit(data interface{}) error
 }
 
 type ConnectionFactory func(
@@ -135,6 +140,11 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	}
 	var response ConnectionResponse
 	if err := connection.HandleOpen(); err != nil {
+		socket.Write(DisconnectResponseTransmission{
+			Type:      "disconnect",
+			Reason:    err.Error(),
+			Reconnect: false,
+		})
 		response = ConnectionResponse{
 			Status: Status_FAILURE,
 		}
