@@ -1,4 +1,4 @@
-module stimulus
+module activego
 
 go 1.14
 

@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"stimulus/anycable"
+	"activego/anycable"
 )
 
 func Connected(c anycable.Connection) error {

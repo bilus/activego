@@ -1,7 +1,7 @@
 package grifts
 
 import (
-	"stimulus/actions"
+	"activego/actions"
 
 	"github.com/gobuffalo/buffalo"
 )

@@ -58,15 +58,21 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
   - [X] Controller implementation
   - [X] Start node with minimal dependencies
   - [X] Call HandlePubSub or, better, Broadcast when broadcasting.
-- [ ] Anyt tests pass for standalone server
+- [X] Anyt tests pass for standalone server
+- [X] Simplified DSL for chat
 - [ ] Create a library
+  - [ ] Rename
+  - [ ] Move buffalo code to example/chat
+  - [ ] Restructure code under anycable/
+  - [ ] README
+    - [ ] Quick start
+  - [ ] Write minimal integration test app w/o buffalo.
 - [ ] Use in Rally
-  - [ ] Show which user is online
+  - [ ] Show which uexternalser is online
 - [ ] Rewrite anyt tests in Go
 https://github.com/posener/wstest
-
+- [ ] Docstrings for everything
 - [ ] Address all TODOs
-- [X] Simplified DSL for chat
 - [ ] Contribute http broadcast adapter to anyt
 
     ``` ruby

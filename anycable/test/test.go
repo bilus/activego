@@ -1,10 +1,10 @@
 package test
 
 import (
+	"activego/anycable"
 	"fmt"
 	"log"
 	"regexp"
-	"stimulus/anycable"
 )
 
 func Setup(server *anycable.ServerBuilder) {

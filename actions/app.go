@@ -9,8 +9,8 @@ import (
 	paramlogger "github.com/gobuffalo/mw-paramlogger"
 	"github.com/unrolled/secure"
 
-	"stimulus/anycable"
-	"stimulus/models"
+	"activego/anycable"
+	"activego/models"
 
 	"github.com/gobuffalo/buffalo-pop/v2/pop/popmw"
 	csrf "github.com/gobuffalo/mw-csrf"

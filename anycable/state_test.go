@@ -1,7 +1,7 @@
 package anycable_test
 
 import (
-	"stimulus/anycable"
+	"activego/anycable"
 	"testing"
 
 	"github.com/stretchr/testify/require"

@@ -4,10 +4,10 @@ import (
 	"log"
 	"sync"
 
-	"stimulus/actions"
-	"stimulus/anycable"
-	"stimulus/anycable/adapters"
-	"stimulus/anycable/test"
+	"activego/actions"
+	"activego/anycable"
+	"activego/anycable/adapters"
+	"activego/anycable/test"
 )
 
 // main is the starting point for your Buffalo application.

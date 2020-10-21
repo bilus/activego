@@ -3,7 +3,7 @@ package anycable
 import (
 	context "context"
 	"fmt"
-	"stimulus/anycable/adapters"
+	"activego/anycable/adapters"
 )
 
 type ConnectedHandler func(Connection) error
