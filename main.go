@@ -7,7 +7,7 @@ import (
 	"stimulus/actions"
 	"stimulus/anycable"
 	"stimulus/anycable/adapters"
-	"stimulus/chat"
+	"stimulus/anycable/test"
 )
 
 // main is the starting point for your Buffalo application.
@@ -23,21 +23,24 @@ func main() {
 	// log.Println("Starting AnyCable backend listening on 50051")
 	// TODO: Pass adapter instead of broadcaster, keep the latter internal..
 	broadcaster := anycable.NewBroadcaster(adapters.NewHTTPBroadcastAdapter("http://localhost:8090/_broadcast")) // TODO: Make configurable.
-	server := anycable.BuildServer(broadcaster).Connected(chat.Connected)
-	chatCh := server.Channel("ChatChannel")
-	chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
+	server := anycable.BuildServer(broadcaster)
 
-	embeddedAnycable := server.MakeEmbedded()
+	// server.Connected(chat.Connected)
+	// chatCh := server.Channel("ChatChannel")
+	// chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
+	test.Setup(server)
+	// embeddedAnycable := server.MakeEmbedded() // TODO: Passing nil to BuildServer doesn't make sense as DSL.
 
-	// if err := server.Serve(50051); err != nil {
-	// 	log.Fatal(err)
-	// }
+	if err := server.Serve(50051); err != nil {
+		log.Fatal(err)
+	}
 
 	// }()
 
 	wg.Add(1)
 	go func() {
-		app := actions.App(&embeddedAnycable)
+		// app := actions.App(&embeddedAnycable)
+		app := actions.App(nil)
 		if err := app.Serve(); err != nil {
 			log.Fatal(err)
 		}

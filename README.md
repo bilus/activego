@@ -54,12 +54,16 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
   - [X] channel_state_test.rb
 - [X] Simple chat
 - [X] Estimate what would it take to skip RPC + HTTP broadcast.
-- [ ] Embed anycable
-  - [ ] Controller implementation
-  - [ ] Start node with minimal dependencies
-  - [ ] Call HandlePubSub or, better, Broadcast when broadcasting.
+- [X] Embed anycable
+  - [X] Controller implementation
+  - [X] Start node with minimal dependencies
+  - [X] Call HandlePubSub or, better, Broadcast when broadcasting.
+- [ ] Anyt tests pass for standalone server
+- [ ] Create a library
 - [ ] Use in Rally
   - [ ] Show which user is online
+- [ ] Rewrite anyt tests in Go
+https://github.com/posener/wstest
 
 - [ ] Address all TODOs
 - [X] Simplified DSL for chat
