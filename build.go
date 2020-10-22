@@ -1,9 +1,10 @@
-package anycable
+package activego
 
 import (
 	context "context"
 	"fmt"
-	"activego/anycable/adapters"
+
+	"github.com/bilus/activego/adapters"
 )
 
 type ConnectedHandler func(Connection) error

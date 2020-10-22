@@ -1,4 +1,4 @@
-package anycable
+package activego
 
 type statelessChannel struct {
 	socket         *Socket

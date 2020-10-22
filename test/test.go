@@ -1,13 +1,14 @@
 package test
 
 import (
-	"activego/anycable"
 	"fmt"
 	"log"
 	"regexp"
+
+	"github.com/bilus/activego"
 )
 
-func Setup(server *anycable.ServerBuilder) {
+func Setup(server *activego.ServerBuilder) {
 	server.Connected(Connected)
 	channels := []string{
 		"Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel",
@@ -37,7 +38,7 @@ func Setup(server *anycable.ServerBuilder) {
 
 type TestCases map[string]func() bool
 
-func (testCases TestCases) runAll(c anycable.Connection) error {
+func (testCases TestCases) runAll(c activego.Connection) error {
 	testName := c.URL().Query().Get("test")
 	if testName == "" {
 		testName = "*" // Special catch all for default behaviour.
@@ -55,7 +56,7 @@ func (testCases TestCases) runAll(c anycable.Connection) error {
 	return nil
 }
 
-func Connected(c anycable.Connection) error {
+func Connected(c activego.Connection) error {
 	// Delegate to actual collection.
 	testCases := TestCases{
 		"request_url": func() bool {
@@ -95,16 +96,16 @@ func Connected(c anycable.Connection) error {
 	return nil
 }
 
-func Subscribed(c anycable.Connection, ch anycable.Channel) error {
+func Subscribed(c activego.Connection, ch activego.Channel) error {
 	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::SubscriptionAknowledgementRejectorChannel":
 		return ch.Reject()
 	case "Anyt::TestChannels::SubscriptionTransmissionsChannel":
-		c.Transmit(anycable.MessageResponseTransmission{
+		c.Transmit(activego.MessageResponseTransmission{
 			Message:    "hello",
 			Identifier: ch.IdentifierJSON(), // TODO: Pass Identifier itself.
 		})
-		c.Transmit(anycable.MessageResponseTransmission{
+		c.Transmit(activego.MessageResponseTransmission{
 			Message:    "world",
 			Identifier: ch.IdentifierJSON(),
 		})
@@ -136,7 +137,7 @@ func Subscribed(c anycable.Connection, ch anycable.Channel) error {
 	return nil
 }
 
-func Unsubscribed(c anycable.Connection, ch anycable.Channel) error {
+func Unsubscribed(c activego.Connection, ch activego.Channel) error {
 	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::RequestAChannel":
 		ch.Broadcast("request_a", map[string]string{"data": "user left"})
@@ -158,30 +159,30 @@ func Unsubscribed(c anycable.Connection, ch anycable.Channel) error {
 	return nil
 }
 
-func Tick(c anycable.Connection, ch anycable.Channel, data anycable.ActionData) error {
+func Tick(c activego.Connection, ch activego.Channel, data activego.ActionData) error {
 	switch ch.Identifier().Channel {
 	case "Anyt::TestChannels::ChannelStateChannel":
 		state := ch.State()
 		state.UpdateFloat64("count", func(v float64) float64 { return v + 2 })
 		user := state.Get("user").(map[string]interface{})
-		return c.Transmit(anycable.MessageResponseTransmission{
+		return c.Transmit(activego.MessageResponseTransmission{
 			Message:    map[string]interface{}{"count": state.Get("count"), "name": user["name"]},
 			Identifier: ch.IdentifierJSON(),
 		})
 	default:
-		return c.Transmit(anycable.MessageResponseTransmission{
+		return c.Transmit(activego.MessageResponseTransmission{
 			Message:    "tock",
 			Identifier: ch.IdentifierJSON(),
 		})
 	}
 }
 
-func Unfollow(c anycable.Connection, ch anycable.Channel, data anycable.ActionData) error {
+func Unfollow(c activego.Connection, ch activego.Channel, data activego.ActionData) error {
 	return ch.StopStreamFrom(data["name"].(string))
 }
 
-func Echo(c anycable.Connection, ch anycable.Channel, data anycable.ActionData) error {
-	return c.Transmit(anycable.MessageResponseTransmission{
+func Echo(c activego.Connection, ch activego.Channel, data activego.ActionData) error {
+	return c.Transmit(activego.MessageResponseTransmission{
 		Message: map[string]interface{}{
 			"response": data["text"],
 		},

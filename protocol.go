@@ -1,4 +1,4 @@
-package anycable
+package activego
 
 type WelcomeResponseTransmission struct {
 	Type string `json:"type"`

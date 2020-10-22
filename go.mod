@@ -1,4 +1,5 @@
-module activego
+module github.com/bilus/activego
+
 
 go 1.14
 

@@ -1,4 +1,4 @@
-package anycable
+package activego
 
 import (
 	context "context"

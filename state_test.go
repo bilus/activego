@@ -1,7 +1,6 @@
-package anycable_test
+package activego_test
 
 import (
-	"activego/anycable"
 	"testing"
 
 	"github.com/stretchr/testify/require"
