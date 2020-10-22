@@ -61,9 +61,9 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
 - [X] Anyt tests pass for standalone server
 - [X] Simplified DSL for chat
 - [ ] Create a library
-  - [ ] Rename
-  - [ ] Move buffalo code to example/chat
+  - [X] Rename
   - [ ] Restructure code under anycable/
+  - [ ] Gin example in example/chat
   - [ ] README
     - [ ] Quick start
   - [ ] Write minimal integration test app w/o buffalo.
