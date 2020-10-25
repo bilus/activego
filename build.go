@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bilus/activego/adapters"
+	"github.com/bilus/activego/anycable"
 )
 
 type ConnectedHandler func(Connection) error
@@ -83,7 +84,7 @@ func BuildServer(broadcaster *Broadcaster) *ServerBuilder {
 	builder.Server = NewServer(
 		func(
 			c context.Context,
-			env *Env,
+			env *anycable.Env,
 			socket *Socket,
 			broadcaster *Broadcaster,
 			channelFactory ChannelFactory,
@@ -133,8 +134,8 @@ func (b *ServerBuilder) Disconnected(f DisconnectedHandler) *ServerBuilder {
 	return b
 }
 
-func (b *ServerBuilder) MakeEmbedded() EmbeddedAnycable {
-	a := StartEmbedded(b.Server)
+func (b *ServerBuilder) MakeEmbedded() anycable.EmbeddedAnycable {
+	a := anycable.StartEmbedded(b.Server)
 	b.Server.SetBroadcaster(NewBroadcaster(adapters.NewEmbeddedBroadcastAdapter(a)))
 	return a
 }

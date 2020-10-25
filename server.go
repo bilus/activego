@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/bilus/activego/anycable"
 	"github.com/davecgh/go-spew/spew"
 	grpc "google.golang.org/grpc"
 )
@@ -83,14 +84,14 @@ type Connection interface {
 	URL() *url.URL
 	Header() http.Header
 	Cookie(name string) (*http.Cookie, error)
-	SaveToConnectionResponse(r *ConnectionResponse) error
-	SaveToCommandResponse(r *CommandResponse) error
+	SaveToConnectionResponse(r *anycable.ConnectionResponse) error
+	SaveToCommandResponse(r *anycable.CommandResponse) error
 	Transmit(data interface{}) error
 }
 
 type ConnectionFactory func(
 	c context.Context,
-	env *Env,
+	env *anycable.Env,
 	socket *Socket,
 	broadcaster *Broadcaster,
 	channelFactory ChannelFactory,
@@ -122,11 +123,11 @@ func (s *Server) Serve(port int) error {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	RegisterRPCServer(grpcServer, s)
+	anycable.RegisterRPCServer(grpcServer, s)
 	return grpcServer.Serve(lis)
 }
 
-func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error) {
+func (s *Server) Connect(c context.Context, r *anycable.ConnectionRequest) (*anycable.ConnectionResponse, error) {
 	fmt.Println("Connect")
 	spew.Dump(*r)
 	socket, err := NewSocket(r.Env, false)
@@ -138,23 +139,23 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	if err != nil {
 		return nil, err
 	}
-	var response ConnectionResponse
+	var response anycable.ConnectionResponse
 	if err := connection.HandleOpen(); err != nil {
 		socket.Write(DisconnectResponseTransmission{
 			Type:      "disconnect",
 			Reason:    err.Error(),
 			Reconnect: false,
 		})
-		response = ConnectionResponse{
-			Status: Status_FAILURE,
+		response = anycable.ConnectionResponse{
+			Status: anycable.Status_FAILURE,
 		}
 	} else {
 		identifiersJSON, err := connection.Identifiers().ToJSON()
 		if err != nil {
-			return nil, err // TODO: Do we return err or ConnectionResponse + always nil?
+			return nil, err // TODO: Do we return err or anycable.ConnectionResponse + always nil?
 		}
-		response = ConnectionResponse{
-			Status:      Status_SUCCESS,
+		response = anycable.ConnectionResponse{
+			Status:      anycable.Status_SUCCESS,
 			Identifiers: identifiersJSON,
 			// TODO: EnvResponse
 		}
@@ -167,7 +168,7 @@ func (s *Server) Connect(c context.Context, r *ConnectionRequest) (*ConnectionRe
 	return &response, nil
 }
 
-func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse, error) {
+func (s *Server) Command(c context.Context, m *anycable.CommandMessage) (*anycable.CommandResponse, error) {
 	fmt.Println("Cmmand")
 	spew.Dump(*m)
 	socket, err := NewSocket(m.Env, false)
@@ -183,16 +184,16 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	if err != nil {
 		return nil, err
 	}
-	var response CommandResponse
+	var response anycable.CommandResponse
 	if err := connection.HandleCommand(m.Identifier, m.Command, m.Data); err != nil {
-		response = CommandResponse{
-			Status:   Status_FAILURE,
+		response = anycable.CommandResponse{
+			Status:   anycable.Status_FAILURE,
 			ErrorMsg: fmt.Sprintf("Error handling command %q: %v", m.Command, err),
 			// TODO
 		}
 	} else {
-		response = CommandResponse{
-			Status: Status_SUCCESS,
+		response = anycable.CommandResponse{
+			Status: anycable.Status_SUCCESS,
 		}
 	}
 	if err := connection.SaveToCommandResponse(&response); err != nil {
@@ -203,7 +204,7 @@ func (s *Server) Command(c context.Context, m *CommandMessage) (*CommandResponse
 	return &response, nil
 }
 
-func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*DisconnectResponse, error) {
+func (s *Server) Disconnect(c context.Context, r *anycable.DisconnectRequest) (*anycable.DisconnectResponse, error) {
 	fmt.Println("Disconnect")
 	spew.Dump(*r)
 	socket, err := NewSocket(r.Env, true)
@@ -218,10 +219,10 @@ func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*Disconnec
 	if err != nil {
 		return nil, err
 	}
-	var response DisconnectResponse
+	var response anycable.DisconnectResponse
 	if err := connection.HandleClose(r.Subscriptions); err != nil {
-		response = DisconnectResponse{
-			Status:   Status_FAILURE,
+		response = anycable.DisconnectResponse{
+			Status:   anycable.Status_FAILURE,
 			ErrorMsg: fmt.Sprintf("Error handling disconnect: %v", err),
 		}
 	} else {
@@ -234,8 +235,8 @@ func (s *Server) Disconnect(c context.Context, r *DisconnectRequest) (*Disconnec
 		if err != nil {
 			log.Printf("Error broadcasting disconnect command: %v", err)
 		}
-		response = DisconnectResponse{
-			Status: Status_SUCCESS,
+		response = anycable.DisconnectResponse{
+			Status: anycable.Status_SUCCESS,
 		}
 	}
 	fmt.Println("Response")

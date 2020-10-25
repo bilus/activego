@@ -9,11 +9,12 @@ import (
 	reflect "reflect"
 
 	"github.com/apex/log"
+	"github.com/bilus/activego/anycable"
 	"github.com/iancoleman/strcase"
 )
 
 type StatelessConnection struct {
-	env         *Env
+	env         *anycable.Env
 	request     *http.Request
 	identifiers ConnectionIdentifiers
 
@@ -23,7 +24,7 @@ type StatelessConnection struct {
 	channelFactory ChannelFactory
 }
 
-func NewStatelessConnection(c context.Context, env *Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers ConnectionIdentifiers) (*StatelessConnection, error) {
+func NewStatelessConnection(c context.Context, env *anycable.Env, socket *Socket, broadcaster *Broadcaster, channelFactory ChannelFactory, identifiers ConnectionIdentifiers) (*StatelessConnection, error) {
 	header := http.Header{}
 	for key, value := range env.Headers {
 		header.Set(key, value)
@@ -142,11 +143,11 @@ func (c *StatelessConnection) IdentifiedBy(key string, value interface{}) error 
 	return nil
 }
 
-func (c *StatelessConnection) SaveToConnectionResponse(r *ConnectionResponse) error {
+func (c *StatelessConnection) SaveToConnectionResponse(r *anycable.ConnectionResponse) error {
 	return c.socket.SaveToConnectionResponse(r)
 }
 
-func (c *StatelessConnection) SaveToCommandResponse(r *CommandResponse) error {
+func (c *StatelessConnection) SaveToCommandResponse(r *anycable.CommandResponse) error {
 	return c.socket.SaveToCommandResponse(r)
 }
 

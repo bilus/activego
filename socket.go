@@ -2,6 +2,8 @@ package activego
 
 import (
 	"encoding/json"
+
+	"github.com/bilus/activego/anycable"
 )
 
 type State interface {
@@ -23,7 +25,7 @@ type Socket struct {
 	identifier         *string
 }
 
-func NewSocket(env *Env, disconnect bool) (*Socket, error) {
+func NewSocket(env *anycable.Env, disconnect bool) (*Socket, error) {
 	var err error
 	cstate, err := DecodeSimpleState(env.Cstate)
 	if err != nil {
@@ -73,7 +75,7 @@ func (s *Socket) UnsubscribeAll() {
 	s.unsubscribeAll = true
 }
 
-func (s *Socket) SaveToCommandResponse(r *CommandResponse) error {
+func (s *Socket) SaveToCommandResponse(r *anycable.CommandResponse) error {
 	r.Transmissions = append(r.Transmissions, s.transmissions...)
 	r.Streams = append(r.Streams, s.newSubscriptions...)
 	r.StoppedStreams = append(r.StoppedStreams, s.newUnsubscriptions...)
@@ -83,15 +85,15 @@ func (s *Socket) SaveToCommandResponse(r *CommandResponse) error {
 	return err
 }
 
-func (s *Socket) SaveToConnectionResponse(r *ConnectionResponse) error {
+func (s *Socket) SaveToConnectionResponse(r *anycable.ConnectionResponse) error {
 	r.Transmissions = append(r.Transmissions, s.transmissions...)
 	var err error
 	r.Env, err = s.envResponse()
 	return err
 }
 
-func (s *Socket) envResponse() (*EnvResponse, error) {
-	response := EnvResponse{
+func (s *Socket) envResponse() (*anycable.EnvResponse, error) {
+	response := anycable.EnvResponse{
 		Cstate: make(map[string]string),
 		Istate: make(map[string]string),
 	}

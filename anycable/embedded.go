@@ -11,6 +11,12 @@ import (
 	"github.com/anycable/anycable-go/node"
 )
 
+type Server interface {
+	Connect(c context.Context, r *ConnectionRequest) (*ConnectionResponse, error)
+	Command(c context.Context, m *CommandMessage) (*CommandResponse, error)
+	Disconnect(c context.Context, r *DisconnectRequest) (*DisconnectResponse, error)
+}
+
 type EmbeddedAnycable struct {
 	appNode *node.Node
 	metrics *metrics.Metrics
@@ -31,7 +37,7 @@ func (e EmbeddedAnycable) RemoteDisconnect(m *common.RemoteDisconnectMessage) {
 	e.appNode.RemoteDisconnect(m)
 }
 
-func StartEmbedded(server *Server) EmbeddedAnycable {
+func StartEmbedded(server Server) EmbeddedAnycable {
 	controller := NewController(server)
 	metrics := metrics.NewMetrics(metrics.NewBasePrinter(), 15)
 	appNode := node.NewNode(controller, metrics)
@@ -53,10 +59,10 @@ func StartEmbedded(server *Server) EmbeddedAnycable {
 }
 
 type Controller struct {
-	server *Server
+	server Server
 }
 
-func NewController(server *Server) *Controller {
+func NewController(server Server) *Controller {
 	return &Controller{server}
 }
 
