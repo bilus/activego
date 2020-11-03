@@ -63,7 +63,7 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
 - [ ] Create a library
   - [X] Rename
   - [X] Restructure code under anycable/
-  - [ ] Gin example in example/chat
+  - [x] Gin example in example/chat
   - [ ] README
     - [ ] Quick start
   - [ ] Write minimal integration test app w/o buffalo.
