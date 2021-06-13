@@ -60,13 +60,19 @@ anyt -c "sleep 99999999" --target-url="ws://localhost:8080/cable" --skip-rpc --o
   - [X] Call HandlePubSub or, better, Broadcast when broadcasting.
 - [X] Anyt tests pass for standalone server
 - [X] Simplified DSL for chat
-- [ ] Create a library
+- [x] Create a library
   - [X] Rename
   - [X] Restructure code under anycable/
   - [x] Gin example in example/chat
+- [ ] Read again about Stimulus Reflex & reevaluate
+- [ ] More impressive actioncable showcase
+  - [ ] Find
+  - [ ] Implement in Gin
+- [ ] Improve DSL based on lessons learned
+- Add documentation
   - [ ] README
     - [ ] Quick start
-  - [ ] Write minimal integration test app w/o buffalo.
+  - [ ] Port ActionCable documentation
 - [ ] Use in Rally
   - [ ] Show which uexternalser is online
 - [ ] Rewrite anyt tests in Go

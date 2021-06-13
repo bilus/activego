@@ -45,11 +45,11 @@ func main() {
 		c.HTML(http.StatusOK, "app.tmpl", gin.H{})
 	})
 
-	server := activego.BuildServer(nil)
+	server := activego.BuildServer(nil) // TODO: Passing nil to BuildServer doesn't make sense as DSL.
 	server.Connected(chat.Connected)
 	chatCh := server.Channel("ChatChannel")
 	chatCh.Subscribed(chat.Subscribed).Received("message", chat.Message)
-	embeddedAnycable := server.MakeEmbedded() // TODO: Passing nil to BuildServer doesn't make sense as DSL.
+	embeddedAnycable := server.MakeEmbedded()
 	router.GET("/cable", gin.WrapH(embeddedAnycable))
 
 	if !*isDev {

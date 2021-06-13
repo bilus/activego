@@ -3,7 +3,7 @@ package activego
 type statelessChannel struct {
 	socket         *Socket
 	broadcaster    *Broadcaster
-	identifierJSON string // TODO: Marshal identifier.
+	identifierJSON string // TODO: Marshal identifier instead of keeping two fields.
 	identifier     ChannelIdentifier
 }
 
