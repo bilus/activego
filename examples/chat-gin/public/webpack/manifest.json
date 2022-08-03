@@ -1,6 +1,0 @@
-{
-  "application.js": "http://localhost:3808/webpack/application.js",
-  "application.js.map": "http://localhost:3808/webpack/application.js.map",
-  "vendor.js": "http://localhost:3808/webpack/vendor.js",
-  "vendor.js.map": "http://localhost:3808/webpack/vendor.js.map"
-}
